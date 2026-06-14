@@ -14,7 +14,7 @@ const CAT_MAP = {
   biceps: "Biceps", triceps: "Triceps", core: "Core", abs: "Core",
   cardio: "Cardio", forearms: "Biceps", calves: "Legs", glutes: "Legs",
   quadriceps: "Legs", hamstrings: "Legs", neck: "Shoulders", traps: "Back",
-  "upper back": "Back", "lower back": "Back", chest: "Chest",
+  "upper back": "Back", "lower back": "Back",
 };
 
 /* ── Minimal CSV parser (handles quoted fields) ── */
