@@ -1,0 +1,27 @@
+{
+  "appId": "com.fitlog.app",
+  "appName": "FitLog",
+  "webDir": "dist",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "launchAutoHide": true,
+      "backgroundColor": "#F5EFE8",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "iosSpinnerStyle": "small",
+      "spinnerColor": "#E8B43A"
+    },
+    "StatusBar": {
+      "style": "Dark",
+      "backgroundColor": "#F5EFE8"
+    }
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#F5EFE8",
+    "scheme": "FitLog",
+    "preferredContentMode": "mobile"
+  }
+}
