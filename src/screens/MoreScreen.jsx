@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { T } from "../theme.js";
+import { DEFAULT_EXERCISES } from "../data.js";
 
 const ITEMS = [
   { id: "templates", icon: "📋", label: "Templates", desc: "Save and reuse workout routines", color: "#0A84FF" },
@@ -7,22 +8,159 @@ const ITEMS = [
   { id: "calculators", icon: "🧮", label: "Calculators", desc: "1RM · Plates · Percentages", color: "#FF9F0A" },
 ];
 
+/* ── FitNotes category → our group ── */
+const CAT_MAP = {
+  chest: "Chest", back: "Back", legs: "Legs", shoulders: "Shoulders",
+  biceps: "Biceps", triceps: "Triceps", core: "Core", abs: "Core",
+  cardio: "Cardio", forearms: "Biceps", calves: "Legs", glutes: "Legs",
+  quadriceps: "Legs", hamstrings: "Legs", neck: "Shoulders", traps: "Back",
+  "upper back": "Back", "lower back": "Back", chest: "Chest",
+};
+
+/* ── Minimal CSV parser (handles quoted fields) ── */
+function parseCSVLine(line) {
+  const fields = [];
+  let cur = "", inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === "," && !inQ) { fields.push(cur); cur = ""; }
+    else { cur += c; }
+  }
+  fields.push(cur);
+  return fields;
+}
+
+/* ── Parse FitNotes CSV → merged data ── */
+function importFitNotesCSV(csvText, existingData) {
+  const lines = csvText.replace(/\r/g, "").trim().split("\n");
+  if (lines.length < 2) throw new Error("Empty file");
+
+  const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+  const col = (name) => headers.findIndex(h => h.includes(name.toLowerCase()));
+
+  const iDate     = col("date");
+  const iExercise = col("exercise");
+  const iCategory = col("category");
+  const iWtKg     = col("weight (kg)");
+  const iWtLbs    = col("weight (lbs)");
+  const iReps     = col("reps");
+  const iNotes    = col("notes");
+  const iKind     = col("kind");
+
+  if (iDate < 0 || iExercise < 0 || iReps < 0) throw new Error("Unrecognised format");
+
+  // Build name→id lookup from existing exercises
+  const allEx = [...DEFAULT_EXERCISES, ...existingData.customExercises];
+  const nameToId = {};
+  for (const ex of allEx) nameToId[ex.name.toLowerCase()] = ex.id;
+
+  const newCustom = [...existingData.customExercises];
+  const newWorkouts = {};
+
+  let imported = 0, skipped = 0;
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const cells = parseCSVLine(line);
+
+    const kind = iKind >= 0 ? cells[iKind]?.trim() : "wr";
+    if (kind !== "wr") { skipped++; continue; } // skip distance/time rows
+
+    const dateStr   = cells[iDate]?.trim();
+    const exName    = cells[iExercise]?.trim();
+    const category  = cells[iCategory]?.trim() || "";
+    const weightKg  = iWtKg  >= 0 ? parseFloat(cells[iWtKg])  : NaN;
+    const weightLbs = iWtLbs >= 0 ? parseFloat(cells[iWtLbs]) : NaN;
+    const reps      = parseInt(cells[iReps], 10);
+    const note      = iNotes >= 0 ? (cells[iNotes]?.trim() || "") : "";
+
+    if (!dateStr || !exName || isNaN(reps) || reps <= 0) { skipped++; continue; }
+
+    const weight = existingData.unit === "lbs"
+      ? (isNaN(weightLbs) ? 0 : weightLbs)
+      : (isNaN(weightKg)  ? 0 : weightKg);
+
+    // Resolve or create exercise
+    const nameLow = exName.toLowerCase();
+    if (!nameToId[nameLow]) {
+      const group = CAT_MAP[category.toLowerCase()] || "Chest";
+      const id = "fi" + Date.now() + "_" + newCustom.length;
+      newCustom.push({ id, name: exName, group });
+      nameToId[nameLow] = id;
+    }
+    const exId = nameToId[nameLow];
+
+    if (!newWorkouts[dateStr]) newWorkouts[dateStr] = {};
+    if (!newWorkouts[dateStr][exId]) newWorkouts[dateStr][exId] = [];
+    newWorkouts[dateStr][exId].push({ w: weight, r: reps, note, ts: Date.now() });
+    imported++;
+  }
+
+  // Convert to array format and merge with existing workouts
+  const merged = { ...existingData.workouts };
+  for (const [date, exMap] of Object.entries(newWorkouts)) {
+    const incoming = Object.entries(exMap).map(([exId, sets]) => ({ exId, sets, note: "" }));
+    if (!merged[date]) {
+      merged[date] = incoming;
+    } else {
+      const existing = [...merged[date]];
+      for (const entry of incoming) {
+        const idx = existing.findIndex(e => e.exId === entry.exId);
+        if (idx >= 0) {
+          existing[idx] = { ...existing[idx], sets: [...existing[idx].sets, ...entry.sets] };
+        } else {
+          existing.push(entry);
+        }
+      }
+      merged[date] = existing;
+    }
+  }
+
+  return {
+    newData: { ...existingData, workouts: merged, customExercises: newCustom },
+    stats: { imported, skipped, days: Object.keys(newWorkouts).length },
+  };
+}
+
 export default function MoreScreen({ data, persist, exportData, importData, setOverlay }) {
-  const fileRef = useRef(null);
+  const jsonRef = useRef(null);
+  const csvRef  = useRef(null);
   const [importMsg, setImportMsg] = useState(null);
   const [clearConfirm, setClearConfirm] = useState(false);
-  const { EMPTY_DATA, STORAGE_KEY } = { EMPTY_DATA: { workouts: {}, customExercises: [], templates: [], goals: [], body: [], unit: "kg", lastSet: {}, workoutNotes: {} }, STORAGE_KEY: "fitlog:v1" };
 
-  const handleImport = async (e) => {
+  const showMsg = (msg, isErr = false) => {
+    setImportMsg({ text: msg, err: isErr });
+    setTimeout(() => setImportMsg(null), 4000);
+  };
+
+  const handleJsonImport = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       await importData(file);
-      setImportMsg("Data imported successfully");
+      showMsg("Data imported successfully");
     } catch {
-      setImportMsg("Import failed — invalid file");
+      showMsg("Import failed — invalid JSON file", true);
     }
-    setTimeout(() => setImportMsg(null), 3000);
+    e.target.value = "";
+  };
+
+  const handleCSVImport = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const { newData, stats } = importFitNotesCSV(ev.target.result, data);
+        persist(newData);
+        showMsg(`Imported ${stats.imported} sets across ${stats.days} day${stats.days !== 1 ? "s" : ""}${stats.skipped ? ` · ${stats.skipped} non-weight rows skipped` : ""}`);
+      } catch (err) {
+        showMsg(`CSV import failed — ${err.message}`, true);
+      }
+    };
+    reader.readAsText(file);
     e.target.value = "";
   };
 
@@ -101,29 +239,50 @@ export default function MoreScreen({ data, persist, exportData, importData, setO
 
         <div style={{ height: 1, background: T.sep }} />
 
-        {/* Export */}
+        {/* Export JSON */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <div style={{ fontWeight: 600 }}>Export data</div>
-            <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>Download all your data as JSON</div>
+            <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>Download all data as JSON backup</div>
           </div>
           <button className="chip" onClick={exportData}>Export</button>
         </div>
 
         <div style={{ height: 1, background: T.sep }} />
 
-        {/* Import */}
+        {/* Import JSON */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{ fontWeight: 600 }}>Import data</div>
-            <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>Restore from a backup file</div>
+            <div style={{ fontWeight: 600 }}>Import backup</div>
+            <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>Restore from a FitLog JSON backup</div>
           </div>
-          <button className="chip" onClick={() => fileRef.current?.click()}>Import</button>
-          <input ref={fileRef} type="file" accept=".json" style={{ display: "none" }} onChange={handleImport} />
+          <button className="chip" onClick={() => jsonRef.current?.click()}>Import JSON</button>
+          <input ref={jsonRef} type="file" accept=".json" style={{ display: "none" }} onChange={handleJsonImport} />
+        </div>
+
+        <div style={{ height: 1, background: T.sep }} />
+
+        {/* Import FitNotes CSV */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600 }}>Import FitNotes</div>
+            <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>
+              Import from a FitNotes CSV export · Sets are merged, existing data is kept
+            </div>
+          </div>
+          <button className="chip" style={{ flexShrink: 0 }} onClick={() => csvRef.current?.click()}>Import CSV</button>
+          <input ref={csvRef} type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={handleCSVImport} />
         </div>
 
         {importMsg && (
-          <div style={{ color: importMsg.includes("success") ? T.accent : T.red, fontSize: 13 }}>{importMsg}</div>
+          <div style={{
+            color: importMsg.err ? T.red : T.accent,
+            fontSize: 13, lineHeight: 1.4,
+            padding: "8px 10px", borderRadius: 10,
+            background: importMsg.err ? "rgba(212,80,74,0.08)" : "rgba(192,123,82,0.08)",
+          }}>
+            {importMsg.err ? "⚠ " : "✓ "}{importMsg.text}
+          </div>
         )}
 
         <div style={{ height: 1, background: T.sep }} />
