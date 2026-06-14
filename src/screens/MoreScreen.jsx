@@ -124,7 +124,52 @@ function importFitNotesCSV(csvText, existingData) {
   };
 }
 
-export default function MoreScreen({ data, persist, exportData, importData, setOverlay }) {
+/* ── Export to FitNotes CSV ── */
+function exportFitNotesCSV(data, allExercises) {
+  const exById = Object.fromEntries(allExercises.map(e => [e.id, e]));
+  const isKg = data.unit === "kg";
+  const round2 = n => Math.round(n * 100) / 100;
+
+  const header = "Date,Exercise,Category,Weight (kg),Weight (lbs),Reps,Distance,Distance Unit,Time,Notes,Kind";
+  const rows = [header];
+
+  const sortedDates = Object.keys(data.workouts).sort();
+  for (const date of sortedDates) {
+    const entries = data.workouts[date] || [];
+    for (const en of entries) {
+      const ex = exById[en.exId];
+      if (!ex) continue;
+      for (const s of en.sets) {
+        const weightKg  = isKg ? s.w : round2(s.w / 2.20462);
+        const weightLbs = isKg ? round2(s.w * 2.20462) : s.w;
+        const note = (s.note || "").replace(/"/g, '""'); // escape quotes
+        rows.push([
+          date,
+          `"${ex.name.replace(/"/g, '""')}"`,
+          ex.group,
+          weightKg.toFixed(2),
+          weightLbs.toFixed(2),
+          s.reps ?? s.r,
+          "", "", "",            // Distance, Distance Unit, Time
+          note ? `"${note}"` : "",
+          "wr",
+        ].join(","));
+      }
+    }
+  }
+
+  const csv = rows.join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `FitLog-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  return rows.length - 1; // number of set rows
+}
+
+export default function MoreScreen({ data, persist, exportData, importData, allExercises, setOverlay }) {
   const jsonRef = useRef(null);
   const csvRef  = useRef(null);
   const [importMsg, setImportMsg] = useState(null);
@@ -272,6 +317,28 @@ export default function MoreScreen({ data, persist, exportData, importData, setO
           </div>
           <button className="chip" style={{ flexShrink: 0 }} onClick={() => csvRef.current?.click()}>Import CSV</button>
           <input ref={csvRef} type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={handleCSVImport} />
+        </div>
+
+        <div style={{ height: 1, background: T.sep }} />
+
+        {/* Export FitNotes CSV */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600 }}>Export FitNotes</div>
+            <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>
+              Download all workouts as a FitNotes-compatible CSV
+            </div>
+          </div>
+          <button
+            className="chip"
+            style={{ flexShrink: 0 }}
+            onClick={() => {
+              const count = exportFitNotesCSV(data, allExercises || []);
+              showMsg(`Exported ${count} set${count !== 1 ? "s" : ""} to CSV`);
+            }}
+          >
+            Export CSV
+          </button>
         </div>
 
         {importMsg && (

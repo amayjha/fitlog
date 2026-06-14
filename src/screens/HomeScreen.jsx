@@ -38,6 +38,7 @@ export default function HomeScreen({
 
   const hasSets = todayEntries.some((en) => en.sets.length > 0);
   const workoutNote = data.workoutNotes?.[key] || "";
+  const editable = isToday(date);
 
   const doShare = async (kind) => {
     const msg = await shareWorkout(kind);
@@ -136,10 +137,14 @@ export default function HomeScreen({
         {todayEntries.length === 0 ? (
           <div className="empty" style={{ padding: "24px 8px" }}>
             <div style={{ fontSize: 15, marginBottom: 14 }}>Nothing logged for this day.</div>
-            <button className="primary" onClick={() => setOverlay({ name: "pick" })}>+ Add exercise</button>
-            <button className="ghostbtn" style={{ display: "block", margin: "6px auto 0" }} onClick={() => setOverlay({ name: "copyworkout" })}>
-              Copy previous workout
-            </button>
+            {editable && (
+              <>
+                <button className="primary" onClick={() => setOverlay({ name: "pick" })}>+ Add exercise</button>
+                <button className="ghostbtn" style={{ display: "block", margin: "6px auto 0" }} onClick={() => setOverlay({ name: "copyworkout" })}>
+                  Copy previous workout
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <>
@@ -164,7 +169,12 @@ export default function HomeScreen({
                 <button
                   key={en.exId}
                   className={`card${pendingDelete ? " danger" : ""}`}
-                  onClick={() => { if (confirmDeleteId) setConfirmDeleteId(null); else setOverlay({ name: "log", exId: en.exId }); }}
+                  style={editable ? {} : { cursor: "default" }}
+                  onClick={() => {
+                    if (!editable) return;
+                    if (confirmDeleteId) setConfirmDeleteId(null);
+                    else setOverlay({ name: "log", exId: en.exId });
+                  }}
                 >
                   <span className="plate" style={{ background: GROUP_COLORS[ex.group] || T.label }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -178,45 +188,52 @@ export default function HomeScreen({
                         : en.sets.map((s) => `${s.w}×${s.r}`).join("  ·  ")}
                     </div>
                   </div>
-                  <button
-                    onClick={(e) => handleDeleteClick(e, en.exId)}
-                    style={{
-                      background: pendingDelete ? T.red : T.card2,
-                      color: pendingDelete ? "#fff" : T.faint,
-                      border: "none", borderRadius: 10, width: 44, height: 44,
-                      fontSize: 18, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                      cursor: "pointer", touchAction: "manipulation",
-                    }}
-                  >
-                    {pendingDelete ? "✓" : "×"}
-                  </button>
+                  {editable && (
+                    <button
+                      onClick={(e) => handleDeleteClick(e, en.exId)}
+                      style={{
+                        background: pendingDelete ? T.red : T.card2,
+                        color: pendingDelete ? "#fff" : T.faint,
+                        border: "none", borderRadius: 10, width: 44, height: 44,
+                        fontSize: 18, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                        cursor: "pointer", touchAction: "manipulation",
+                      }}
+                    >
+                      {pendingDelete ? "✓" : "×"}
+                    </button>
+                  )}
                 </button>
               );
             })}
 
-            <button className="primary" onClick={() => setOverlay({ name: "pick" })}>
-              + Add exercise
-            </button>
+            {editable && (
+              <button className="primary" onClick={() => setOverlay({ name: "pick" })}>
+                + Add exercise
+              </button>
+            )}
 
             {/* Workout note */}
-            <div>
-              <button
-                className="ghostbtn"
-                style={{ fontSize: 13, color: workoutNote ? T.text : T.faint, padding: "6px 0" }}
-                onClick={() => setNoteOpen((o) => !o)}
-              >
-                {noteOpen ? "▾" : "▸"} {workoutNote ? "Workout note" : "Add workout note"}
-              </button>
-              {noteOpen && (
-                <textarea
-                  className="input"
-                  style={{ marginTop: 6 }}
-                  placeholder="How did this session feel?"
-                  value={workoutNote}
-                  onChange={(e) => setWorkoutNote(e.target.value)}
-                />
-              )}
-            </div>
+            {(editable || workoutNote) && (
+              <div>
+                <button
+                  className="ghostbtn"
+                  style={{ fontSize: 13, color: workoutNote ? T.text : T.faint, padding: "6px 0" }}
+                  onClick={() => setNoteOpen((o) => !o)}
+                >
+                  {noteOpen ? "▾" : "▸"} {workoutNote ? "Workout note" : "Add workout note"}
+                </button>
+                {noteOpen && (
+                  <textarea
+                    className="input"
+                    style={{ marginTop: 6 }}
+                    placeholder="How did this session feel?"
+                    value={workoutNote}
+                    readOnly={!editable}
+                    onChange={(e) => editable && setWorkoutNote(e.target.value)}
+                  />
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
