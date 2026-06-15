@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { T, GROUP_COLORS } from "../theme.js";
 import { dkey, fmtDate, isToday, e1rm, round1 } from "../utils.js";
+import { getAiApiKey, saveAiApiKey, generateWorkoutSummary } from "../utils/aiSummary.js";
 
 export default function HomeScreen({
   date, setDate, key, todayEntries, exById, bestByExercise, data,
@@ -16,6 +17,32 @@ export default function HomeScreen({
   const [shareMsg, setShareMsg] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [noteOpen, setNoteOpen] = useState(false);
+
+  const [aiApiKey, setAiApiKeyState] = useState(() => getAiApiKey());
+  const [aiKeyDraft, setAiKeyDraft] = useState("");
+  const [aiSetupOpen, setAiSetupOpen] = useState(false);
+  const [aiSummary, setAiSummary] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+
+  useEffect(() => {
+    setAiSummary("");
+    setAiError("");
+  }, [key]);
+
+  const handleGenerateSummary = async (keyOverride) => {
+    const k = keyOverride ?? aiApiKey;
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const text = await generateWorkoutSummary(k, todayEntries, exById, data.unit);
+      setAiSummary(text);
+    } catch (err) {
+      setAiError(err.message || "Failed to generate summary");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const shift = (n) => {
     const d = new Date(date);
@@ -237,6 +264,121 @@ export default function HomeScreen({
                     readOnly={!editable}
                     onChange={(e) => editable && setWorkoutNote(e.target.value)}
                   />
+                )}
+              </div>
+            )}
+
+            {/* AI Summary */}
+            {hasSets && (
+              <div>
+                {!aiApiKey ? (
+                  <>
+                    <button
+                      className="ghostbtn"
+                      style={{ fontSize: 13, color: T.faint, padding: "6px 0" }}
+                      onClick={() => setAiSetupOpen((o) => !o)}
+                    >
+                      {aiSetupOpen ? "▾" : "▸"} AI Summary
+                    </button>
+                    {aiSetupOpen && (
+                      <div style={{ marginTop: 8, display: "grid", gap: 10 }}>
+                        <div style={{ color: T.label, fontSize: 13, lineHeight: 1.6 }}>
+                          Get an AI-generated analysis of your workout:
+                          <ol style={{ margin: "8px 0 0", paddingLeft: 18, display: "grid", gap: 3 }}>
+                            <li>Go to <strong>console.anthropic.com</strong> → API Keys</li>
+                            <li>Create a new API key</li>
+                            <li>Paste it below</li>
+                          </ol>
+                        </div>
+                        <input
+                          className="input"
+                          type="password"
+                          placeholder="sk-ant-..."
+                          value={aiKeyDraft}
+                          onChange={(e) => setAiKeyDraft(e.target.value)}
+                          autoComplete="off"
+                        />
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button
+                            className="primary"
+                            style={{ flex: 1 }}
+                            disabled={!aiKeyDraft.trim()}
+                            onClick={() => {
+                              const k = aiKeyDraft.trim();
+                              saveAiApiKey(k);
+                              setAiApiKeyState(k);
+                              setAiKeyDraft("");
+                              setAiSetupOpen(false);
+                              handleGenerateSummary(k);
+                            }}
+                          >
+                            Save & Generate
+                          </button>
+                          <button className="ghostbtn" onClick={() => setAiSetupOpen(false)}>Cancel</button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {!aiSummary && !aiLoading && (
+                      <button
+                        className="ghostbtn"
+                        style={{ fontSize: 13, color: T.accent, padding: "6px 0" }}
+                        onClick={() => handleGenerateSummary()}
+                      >
+                        ▸ AI Summary
+                      </button>
+                    )}
+                    {aiLoading && (
+                      <div style={{ color: T.faint, fontSize: 13, padding: "8px 0" }}>
+                        Generating summary…
+                      </div>
+                    )}
+                    {aiError && (
+                      <div style={{ color: T.red, fontSize: 13, padding: "6px 0" }}>
+                        {aiError}
+                        <button
+                          className="ghostbtn"
+                          style={{ fontSize: 12, marginLeft: 10 }}
+                          onClick={() => handleGenerateSummary()}
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    )}
+                    {aiSummary && (
+                      <div style={{ background: T.card2, borderRadius: 14, padding: "12px 14px 10px" }}>
+                        <div style={{ color: T.faint, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                          AI Summary
+                        </div>
+                        <div style={{ fontSize: 14, color: T.text, lineHeight: 1.6 }}>
+                          {aiSummary}
+                        </div>
+                        <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                          <button
+                            className="ghostbtn"
+                            style={{ fontSize: 12, padding: "3px 10px" }}
+                            onClick={() => handleGenerateSummary()}
+                          >
+                            ↺ Regenerate
+                          </button>
+                          <button
+                            className="ghostbtn"
+                            style={{ fontSize: 12, padding: "3px 10px" }}
+                            onClick={() => {
+                              saveAiApiKey("");
+                              setAiApiKeyState("");
+                              setAiSummary("");
+                              setAiSetupOpen(true);
+                            }}
+                          >
+                            ⚙ Change key
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
