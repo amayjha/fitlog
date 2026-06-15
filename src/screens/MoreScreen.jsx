@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { T } from "../theme.js";
 import { DEFAULT_EXERCISES } from "../data.js";
+import { uploadWorkoutsToGoogleDrive } from "../utils/googleDrive.js";
 
 const ITEMS = [
   { id: "templates", icon: "📋", label: "Templates", desc: "Save and reuse workout routines", color: "#0A84FF" },
@@ -124,25 +125,21 @@ function importFitNotesCSV(csvText, existingData) {
   };
 }
 
-/* ── Export to FitNotes CSV ── */
-function exportFitNotesCSV(data, allExercises) {
+/* ── Build FitNotes-compatible CSV string ── */
+export function buildFitNotesCSV(data, allExercises) {
   const exById = Object.fromEntries(allExercises.map(e => [e.id, e]));
   const isKg = data.unit === "kg";
   const round2 = n => Math.round(n * 100) / 100;
 
-  const header = "Date,Exercise,Category,Weight (kg),Weight (lbs),Reps,Distance,Distance Unit,Time,Notes,Kind";
-  const rows = [header];
-
-  const sortedDates = Object.keys(data.workouts).sort();
-  for (const date of sortedDates) {
-    const entries = data.workouts[date] || [];
-    for (const en of entries) {
+  const rows = ["Date,Exercise,Category,Weight (kg),Weight (lbs),Reps,Distance,Distance Unit,Time,Notes,Kind"];
+  for (const date of Object.keys(data.workouts).sort()) {
+    for (const en of data.workouts[date] || []) {
       const ex = exById[en.exId];
       if (!ex) continue;
       for (const s of en.sets) {
         const weightKg  = isKg ? s.w : round2(s.w / 2.20462);
         const weightLbs = isKg ? round2(s.w * 2.20462) : s.w;
-        const note = (s.note || "").replace(/"/g, '""'); // escape quotes
+        const note = (s.note || "").replace(/"/g, '""');
         rows.push([
           date,
           `"${ex.name.replace(/"/g, '""')}"`,
@@ -150,15 +147,20 @@ function exportFitNotesCSV(data, allExercises) {
           weightKg.toFixed(2),
           weightLbs.toFixed(2),
           s.reps ?? s.r,
-          "", "", "",            // Distance, Distance Unit, Time
+          "", "", "",
           note ? `"${note}"` : "",
           "wr",
         ].join(","));
       }
     }
   }
+  return rows.join("\r\n");
+}
 
-  const csv = rows.join("\r\n");
+/* ── Export to FitNotes CSV (download) ── */
+function exportFitNotesCSV(data, allExercises) {
+  const csv = buildFitNotesCSV(data, allExercises);
+  const setCount = csv.split("\r\n").length - 1;
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -166,7 +168,7 @@ function exportFitNotesCSV(data, allExercises) {
   a.download = `FitLog-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
-  return rows.length - 1; // number of set rows
+  return setCount;
 }
 
 export default function MoreScreen({ data, persist, exportData, importData, allExercises, setOverlay }) {
@@ -175,9 +177,36 @@ export default function MoreScreen({ data, persist, exportData, importData, allE
   const [importMsg, setImportMsg] = useState(null);
   const [clearConfirm, setClearConfirm] = useState(false);
 
+  const [driveClientId, setDriveClientId] = useState(() => localStorage.getItem("fitlog:gclientid") || "");
+  const [clientIdDraft, setClientIdDraft] = useState("");
+  const [driveSetupOpen, setDriveSetupOpen] = useState(false);
+  const [drivePending, setDrivePending] = useState(false);
+
   const showMsg = (msg, isErr = false) => {
     setImportMsg({ text: msg, err: isErr });
     setTimeout(() => setImportMsg(null), 4000);
+  };
+
+  const saveClientId = () => {
+    const id = clientIdDraft.trim();
+    if (!id) return;
+    localStorage.setItem("fitlog:gclientid", id);
+    setDriveClientId(id);
+    setDriveSetupOpen(false);
+  };
+
+  const handleDriveExport = async () => {
+    if (!driveClientId) { setDriveSetupOpen(true); setClientIdDraft(""); return; }
+    setDrivePending(true);
+    try {
+      const csv = buildFitNotesCSV(data, allExercises || []);
+      const action = await uploadWorkoutsToGoogleDrive(driveClientId, csv);
+      showMsg(`FitLog-Workouts.csv ${action} on Google Drive`);
+    } catch (err) {
+      showMsg(err.message || "Google Drive upload failed", true);
+    } finally {
+      setDrivePending(false);
+    }
   };
 
   const handleJsonImport = async (e) => {
@@ -349,6 +378,71 @@ export default function MoreScreen({ data, persist, exportData, importData, allE
             background: importMsg.err ? "rgba(212,80,74,0.08)" : "rgba(192,123,82,0.08)",
           }}>
             {importMsg.err ? "⚠ " : "✓ "}{importMsg.text}
+          </div>
+        )}
+
+        <div style={{ height: 1, background: T.sep }} />
+
+        {/* Google Drive */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600 }}>Save to Google Drive</div>
+            <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>
+              Upload all workouts as CSV to your Google Drive
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+            {driveClientId && (
+              <button
+                className="chip"
+                title="Change Client ID"
+                onClick={() => { setDriveSetupOpen((o) => !o); setClientIdDraft(driveClientId); }}
+              >
+                ⚙
+              </button>
+            )}
+            <button
+              className="chip"
+              disabled={drivePending}
+              onClick={handleDriveExport}
+            >
+              {drivePending ? "Saving…" : driveClientId ? "Save to Drive" : "Set up"}
+            </button>
+          </div>
+        </div>
+
+        {driveSetupOpen && (
+          <div style={{ display: "grid", gap: 10, padding: "12px 14px", borderRadius: 12, background: "rgba(238,228,218,0.50)" }}>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>Google OAuth Client ID</div>
+            <ol style={{ color: T.label, fontSize: 13, lineHeight: 1.6, margin: 0, paddingLeft: 18 }}>
+              <li>Go to <strong>console.cloud.google.com</strong> and create a project</li>
+              <li>Enable the <strong>Google Drive API</strong></li>
+              <li>Create <strong>OAuth 2.0 credentials</strong> → Web Application type</li>
+              <li>Add <code style={{ background: "rgba(0,0,0,0.06)", padding: "1px 5px", borderRadius: 4 }}>{window.location.origin}</code> as an authorized JavaScript origin</li>
+              <li>Paste the Client ID below</li>
+            </ol>
+            <input
+              className="input"
+              placeholder="xxxxxxxx.apps.googleusercontent.com"
+              value={clientIdDraft}
+              onChange={(e) => setClientIdDraft(e.target.value)}
+              autoFocus
+            />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="primary" style={{ flex: 1 }} disabled={!clientIdDraft.trim()} onClick={saveClientId}>
+                Save
+              </button>
+              <button className="ghostbtn" onClick={() => setDriveSetupOpen(false)}>Cancel</button>
+            </div>
+            {driveClientId && (
+              <button
+                className="ghostbtn"
+                style={{ color: T.red, fontSize: 13, textAlign: "left" }}
+                onClick={() => { localStorage.removeItem("fitlog:gclientid"); setDriveClientId(""); setDriveSetupOpen(false); }}
+              >
+                Remove saved Client ID
+              </button>
+            )}
           </div>
         )}
 

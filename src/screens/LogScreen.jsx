@@ -85,7 +85,7 @@ export default function LogScreen({
           <div style={{ fontWeight: 700 }}>{ex.name}</div>
           <div style={{ color: T.faint, fontSize: 11 }}>{dateLabel}</div>
         </div>
-        <button className="ghostbtn" onClick={removeExerciseFromDay} title="Remove from this workout" style={{ color: T.red }}>
+        <button className="ghostbtn" onClick={() => removeExerciseFromDay(ex.id)} title="Remove from this workout" style={{ color: T.red }}>
           🗑
         </button>
       </header>

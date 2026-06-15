@@ -166,7 +166,7 @@ export default function HomeScreen({
               const isPR = best > 0 && Math.abs(best - (bestByExercise[en.exId] || 0)) < 0.001;
               const pendingDelete = confirmDeleteId === en.exId;
               return (
-                <button
+                <div
                   key={en.exId}
                   className={`card${pendingDelete ? " danger" : ""}`}
                   style={editable ? {} : { cursor: "default" }}
@@ -202,7 +202,7 @@ export default function HomeScreen({
                       {pendingDelete ? "✓" : "×"}
                     </button>
                   )}
-                </button>
+                </div>
               );
             })}
 

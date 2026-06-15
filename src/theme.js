@@ -7,8 +7,8 @@ export const T = {
   card2:   "rgba(238,228,218,0.72)",
   sep:     "rgba(0,0,0,0.09)",
   text:    "#1C1008",               // deep warm brown
-  label:   "#7A6450",               // warm taupe
-  faint:   "#A89070",               // sandy muted
+  label:   "#5A4030",               // warm taupe
+  faint:   "#7A5C44",               // sandy muted
   accent:  "#C07B52",               // rose gold / copper
   red:     "#D4504A",
   orange:  "#D8872A",
@@ -31,9 +31,9 @@ export const GROUP_COLORS = {
   Cardio:    "#3AAAC0",
 };
 
-const CARD_BG  = "rgba(255,251,247,0.82)";
+const CARD_BG  = "rgba(255,251,247,0.91)";
 const CARD_BLR = "blur(20px)";
-const NAV_BG   = "rgba(253,248,244,0.92)";
+const NAV_BG   = "rgba(253,248,244,0.96)";
 
 export const css = `
   /* ── Reset & base ── */
@@ -54,14 +54,14 @@ export const css = `
     background-attachment: fixed;
     color: ${T.text};
     font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', system-ui, sans-serif;
-    font-size: 17px; line-height: 1.4;
+    font-size: 17px; line-height: 1.55;
     overscroll-behavior-y: none;
   }
   /* Soft warm scrim so image doesn't overpower text */
   .app::before {
     content: '';
     position: fixed; inset: 0;
-    background: rgba(248, 242, 235, 0.28);
+    background: rgba(248, 242, 235, 0.55);
     pointer-events: none; z-index: 0;
   }
 
@@ -78,7 +78,7 @@ export const css = `
   .screen-title { font-size: 28px; font-weight: 700; letter-spacing: 0.2px; }
   .section-title { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
   .section-label {
-    color: ${T.label}; font-size: 13px; letter-spacing: 0.5px;
+    color: ${T.label}; font-size: 14px; letter-spacing: 0.4px;
     text-transform: uppercase; font-weight: 600;
   }
 
@@ -127,7 +127,7 @@ export const css = `
 
   /* ── Chips / filter pills ── */
   .chip {
-    background: rgba(255,251,247,0.72); border: 1px solid rgba(0,0,0,0.08);
+    background: rgba(255,251,247,0.90); border: 1px solid rgba(0,0,0,0.08);
     color: ${T.label}; padding: 8px 16px; border-radius: 999px;
     font-size: 14px; font-weight: 600;
     display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
@@ -344,7 +344,7 @@ export const css = `
     border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 2px 12px rgba(0,0,0,0.05);
   }
   .stat-value { font-size: 32px; font-weight: 700; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
-  .stat-label { font-size: 13px; color: ${T.label}; font-weight: 500; }
+  .stat-label { font-size: 14px; color: ${T.label}; font-weight: 500; }
 
   /* ── Calendar ── */
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
