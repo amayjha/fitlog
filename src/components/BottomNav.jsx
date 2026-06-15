@@ -50,6 +50,25 @@ const PersonIcon = ({ active }) => (
   </svg>
 );
 
+const FoodIcon = ({ active }) => (
+  <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M9 3v7a4 4 0 008 0V3"
+      stroke={active ? T.accent : T.faint}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <line x1="13" y1="13" x2="13" y2="23" stroke={active ? T.accent : T.faint} strokeWidth="2" strokeLinecap="round" />
+    <path
+      d="M4 7c0 0 0 4 4 4"
+      stroke={active ? T.accent : T.faint}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <line x1="4" y1="3" x2="4" y2="23" stroke={active ? T.accent : T.faint} strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
 const MoreIcon = ({ active }) => (
   <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="6" cy="13" r="2.2" fill={active ? T.accent : T.faint} />
@@ -63,6 +82,7 @@ const TABS = [
   { id: "calendar", label: "CALENDAR", Icon: CalendarIcon },
   { id: "prs", label: "PRs", Icon: TrophyIcon },
   { id: "body", label: "BODY", Icon: PersonIcon },
+  { id: "nutrition", label: "FOOD", Icon: FoodIcon },
   { id: "more", label: "MORE", Icon: MoreIcon },
 ];
 

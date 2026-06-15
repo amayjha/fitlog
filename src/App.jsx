@@ -15,6 +15,8 @@ import TemplatesScreen from "./screens/TemplatesScreen.jsx";
 import GoalsScreen from "./screens/GoalsScreen.jsx";
 import CalculatorsScreen from "./screens/CalculatorsScreen.jsx";
 import CopyWorkoutScreen from "./screens/CopyWorkoutScreen.jsx";
+import NutritionScreen from "./screens/NutritionScreen.jsx";
+import FoodPickScreen from "./screens/FoodPickScreen.jsx";
 
 /* ── Workout sharing ── */
 const buildShareText = (date, entries, exById, unit) => {
@@ -365,6 +367,15 @@ export default function App() {
           {activeTab === "calendar" && <CalendarScreen {...shared} />}
           {activeTab === "prs" && <PRsScreen {...shared} />}
           {activeTab === "body" && <BodyScreen {...shared} />}
+          {activeTab === "nutrition" && (
+            <NutritionScreen
+              date={date}
+              setDate={setDate}
+              data={data}
+              persist={persist}
+              setOverlay={setOverlay}
+            />
+          )}
           {activeTab === "more" && <MoreScreen {...shared} />}
         </>
       )}
@@ -392,6 +403,15 @@ export default function App() {
           todayKey={key}
           onBack={() => setOverlay(null)}
           onCopy={copyWorkout}
+        />
+      )}
+      {overlay?.name === "foodpick" && (
+        <FoodPickScreen
+          onBack={() => setOverlay(null)}
+          meal={overlay.meal}
+          data={data}
+          persist={persist}
+          date={date}
         />
       )}
 

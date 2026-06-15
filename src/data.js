@@ -39,6 +39,9 @@ export const EMPTY_DATA = {
   unit: "kg",
   lastSet: {},
   workoutNotes: {},
+  meals: {},
+  calorieGoal: 2000,
+  macroGoals: { protein: 150, carbs: 200, fat: 65 },
 };
 
 export const STORAGE_KEY = "fitlog:v1";

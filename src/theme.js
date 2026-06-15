@@ -297,7 +297,7 @@ export const css = `
   }
   .navitem {
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
-    padding: 12px 0 10px; font-size: 10px; letter-spacing: 0.4px; font-weight: 600;
+    padding: 12px 0 10px; font-size: 9px; letter-spacing: 0.3px; font-weight: 600;
     border: none; background: none; cursor: pointer; color: ${T.faint};
     min-height: 56px; touch-action: manipulation;
     transition: color 0.15s;
