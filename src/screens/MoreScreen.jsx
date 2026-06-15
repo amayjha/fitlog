@@ -1,7 +1,8 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { T } from "../theme.js";
 import { DEFAULT_EXERCISES } from "../data.js";
 import { uploadWorkoutsToGoogleDrive } from "../utils/googleDrive.js";
+import { isHealthAvailable, wasHealthPermitted, requestHealthPermissions, getRecentWorkouts } from "../utils/health.js";
 
 const ITEMS = [
   { id: "templates", icon: "📋", label: "Templates", desc: "Save and reuse workout routines", color: "#0A84FF" },
@@ -176,6 +177,83 @@ export default function MoreScreen({ data, persist, exportData, importData, allE
   const csvRef  = useRef(null);
   const [importMsg, setImportMsg] = useState(null);
   const [clearConfirm, setClearConfirm] = useState(false);
+
+  const [healthAvailable, setHealthAvailable] = useState(false);
+  const [healthPermitted, setHealthPermitted] = useState(() => wasHealthPermitted());
+  const [healthConnecting, setHealthConnecting] = useState(false);
+  const [healthImporting, setHealthImporting] = useState(false);
+
+  useEffect(() => {
+    isHealthAvailable().then(setHealthAvailable).catch(() => {});
+  }, []);
+
+  const handleHealthConnect = async () => {
+    setHealthConnecting(true);
+    try {
+      await requestHealthPermissions();
+      setHealthPermitted(true);
+    } catch (err) {
+      showMsg(err.message || "Could not connect to Health", true);
+    } finally {
+      setHealthConnecting(false);
+    }
+  };
+
+  const handleHealthImport = async (days) => {
+    setHealthImporting(true);
+    try {
+      const workouts = await getRecentWorkouts(days);
+      if (!workouts.length) {
+        showMsg(`No importable workouts found in the last ${days} days`);
+        return;
+      }
+
+      // Build name → id lookup across default + custom exercises
+      const allEx = [...DEFAULT_EXERCISES, ...(data.customExercises || [])];
+      const nameToId = {};
+      for (const ex of allEx) nameToId[ex.name.toLowerCase()] = ex.id;
+
+      const newCustom = [...(data.customExercises || [])];
+      const newWorkouts = { ...data.workouts };
+
+      for (const w of workouts) {
+        const nameLow = w.name.toLowerCase();
+        if (!nameToId[nameLow]) {
+          const id = "h" + Date.now() + "_" + newCustom.length;
+          newCustom.push({ id, name: w.name, group: w.group });
+          nameToId[nameLow] = id;
+        }
+        const exId = nameToId[nameLow];
+
+        const noteParts = [];
+        if (w.calories) noteParts.push(`${w.calories} kcal`);
+        if (w.distanceKm) noteParts.push(`${w.distanceKm} km`);
+        noteParts.push("via Health");
+        const set = { w: 0, r: w.durationMins, note: noteParts.join(" · "), ts: Date.now() };
+
+        if (!newWorkouts[w.dateKey]) {
+          newWorkouts[w.dateKey] = [{ exId, sets: [set], note: "" }];
+        } else {
+          const day = [...newWorkouts[w.dateKey]];
+          const idx = day.findIndex((en) => en.exId === exId);
+          if (idx >= 0) {
+            const alreadyThere = day[idx].sets.some((s) => s.note?.includes("via Health") && s.r === w.durationMins);
+            if (!alreadyThere) day[idx] = { ...day[idx], sets: [...day[idx].sets, set] };
+          } else {
+            day.push({ exId, sets: [set], note: "" });
+          }
+          newWorkouts[w.dateKey] = day;
+        }
+      }
+
+      persist({ ...data, workouts: newWorkouts, customExercises: newCustom });
+      showMsg(`Imported ${workouts.length} workout${workouts.length !== 1 ? "s" : ""} from Health`);
+    } catch (err) {
+      showMsg(err.message || "Health import failed", true);
+    } finally {
+      setHealthImporting(false);
+    }
+  };
 
   const [driveClientId, setDriveClientId] = useState(() => localStorage.getItem("fitlog:gclientid") || "");
   const [clientIdDraft, setClientIdDraft] = useState("");
@@ -380,6 +458,47 @@ export default function MoreScreen({ data, persist, exportData, importData, allE
             {importMsg.err ? "⚠ " : "✓ "}{importMsg.text}
           </div>
         )}
+
+        <div style={{ height: 1, background: T.sep }} />
+
+        {/* Apple Health & Google Health */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600 }}>Apple Health &amp; Google Health</div>
+            <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>
+              {!healthAvailable
+                ? "Not available — open in the native app"
+                : healthPermitted
+                ? "Connected · Import workouts from last 7 or 30 days"
+                : "Grant access to view daily steps and import workouts"}
+            </div>
+            {healthPermitted && (
+              <div style={{ color: T.faint, fontSize: 12, marginTop: 4 }}>
+                Cardio sessions only · Strength training is tracked natively in FitLog
+              </div>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+            {!healthPermitted ? (
+              <button
+                className="chip"
+                disabled={!healthAvailable || healthConnecting}
+                onClick={handleHealthConnect}
+              >
+                {healthConnecting ? "Connecting…" : "Connect"}
+              </button>
+            ) : (
+              <>
+                <button className="chip" disabled={healthImporting} onClick={() => handleHealthImport(7)}>
+                  {healthImporting ? "…" : "7d"}
+                </button>
+                <button className="chip" disabled={healthImporting} onClick={() => handleHealthImport(30)}>
+                  30d
+                </button>
+              </>
+            )}
+          </div>
+        </div>
 
         <div style={{ height: 1, background: T.sep }} />
 

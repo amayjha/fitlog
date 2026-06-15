@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { T, GROUP_COLORS } from "../theme.js";
 import { dkey, fmtDate, isToday, e1rm, round1 } from "../utils.js";
+import { isHealthAvailable, wasHealthPermitted, getDayActivity } from "../utils/health.js";
 
 export default function HomeScreen({
   date, setDate, key, todayEntries, exById, bestByExercise, data,
@@ -11,6 +12,16 @@ export default function HomeScreen({
   useEffect(() => {
     todayBtnRef.current?.scrollIntoView({ inline: "center", block: "nearest", behavior: "instant" });
   }, []);
+
+  const [healthActivity, setHealthActivity] = useState(null);
+
+  useEffect(() => {
+    if (!wasHealthPermitted()) return;
+    isHealthAvailable().then((avail) => {
+      if (!avail) return;
+      getDayActivity(date).then(setHealthActivity).catch(() => {});
+    });
+  }, [date]);
 
   const [shareOpen, setShareOpen] = useState(false);
   const [shareMsg, setShareMsg] = useState(null);
@@ -137,6 +148,23 @@ export default function HomeScreen({
         </div>
         <button className="navbtn" style={{ height: 48, borderRadius: 10 }} onClick={() => shift(1)}>›</button>
       </div>
+
+      {/* Health activity strip */}
+      {healthActivity && (healthActivity.steps !== null || healthActivity.calories !== null) && (
+        <div className="panel" style={{ display: "flex", gap: 20, alignItems: "center", padding: "10px 16px" }}>
+          <span style={{ color: T.faint, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", flexShrink: 0 }}>Activity</span>
+          {healthActivity.steps !== null && (
+            <span style={{ fontSize: 13, color: T.label }}>
+              👣 <strong style={{ color: T.text }}>{Math.round(healthActivity.steps).toLocaleString()}</strong> steps
+            </span>
+          )}
+          {healthActivity.calories !== null && (
+            <span style={{ fontSize: 13, color: T.label }}>
+              🔥 <strong style={{ color: T.text }}>{Math.round(healthActivity.calories).toLocaleString()}</strong> kcal
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Workout content */}
       <div className="panel" style={{ display: "grid", gap: 10 }}>
