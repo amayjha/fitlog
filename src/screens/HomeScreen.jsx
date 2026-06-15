@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { T, GROUP_COLORS } from "../theme.js";
 import { dkey, fmtDate, isToday, e1rm, round1 } from "../utils.js";
 
@@ -7,6 +7,11 @@ export default function HomeScreen({
   addExerciseToDay, removeExerciseFromDay,
   setWorkoutNote, shareWorkout, persist, setOverlay, setActiveTab,
 }) {
+  const todayBtnRef = useRef(null);
+  useEffect(() => {
+    todayBtnRef.current?.scrollIntoView({ inline: "center", block: "nearest", behavior: "instant" });
+  }, []);
+
   const [shareOpen, setShareOpen] = useState(false);
   const [shareMsg, setShareMsg] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
@@ -38,7 +43,7 @@ export default function HomeScreen({
 
   const hasSets = todayEntries.some((en) => en.sets.length > 0);
   const workoutNote = data.workoutNotes?.[key] || "";
-  const editable = isToday(date);
+  const editable = dkey(date) >= dkey(new Date());
 
   const doShare = async (kind) => {
     const msg = await shareWorkout(kind);
@@ -116,6 +121,7 @@ export default function HomeScreen({
             return (
               <button
                 key={k}
+                ref={isToday(d) ? todayBtnRef : null}
                 className="daystrip-btn"
                 onClick={() => { setDate(new Date(d)); setConfirmDeleteId(null); }}
                 style={{ background: sel ? T.accent : "transparent", color: sel ? "#000" : isToday(d) ? T.accent : T.label }}
