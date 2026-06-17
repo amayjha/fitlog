@@ -40,6 +40,18 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Remove unused Health Connect permissions
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          sed -i '/READ_RESPIRATORY_RATE/d' $MANIFEST
+          sed -i '/READ_HEART_RATE/d' $MANIFEST
+          sed -i '/READ_BLOOD_OXYGEN/d' $MANIFEST
+          sed -i '/READ_BLOOD_PRESSURE/d' $MANIFEST
+          sed -i '/READ_BLOOD_GLUCOSE/d' $MANIFEST
+          sed -i '/READ_BODY_TEMPERATURE/d' $MANIFEST
+          sed -i '/READ_SLEEP/d' $MANIFEST
+          sed -i '/READ_NUTRITION/d' $MANIFEST
+
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
 
