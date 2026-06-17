@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { T, GROUP_COLORS } from "../theme.js";
 import { e1rm, round1, fmtShortDate, parseDate } from "../utils.js";
+import { BODYWEIGHT_EXERCISES } from "../data.js";
 import Stepper from "../components/Stepper.jsx";
 import Graph from "../components/Graph.jsx";
 
@@ -13,9 +14,10 @@ export default function LogScreen({
   const last = data.lastSet?.[ex.id];
   const bestE1rm = bestByExercise[ex.id] || 0;
   const unit = data.unit;
+  const noWeight = ex.group === "Cardio" || BODYWEIGHT_EXERCISES.has(ex.name);
 
   const [tab, setTab] = useState("track");
-  const [w, setW] = useState(last?.w ?? 20);
+  const [w, setW] = useState(noWeight ? 0 : (last?.w ?? 20));
   const [r, setR] = useState(last?.r ?? 8);
   const [editing, setEditing] = useState(null);
   const [setNote, setSetNote] = useState("");
@@ -106,11 +108,13 @@ export default function LogScreen({
       {tab === "track" && (
         <>
           <div className="panel" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(148px, 1fr))", gap: 16 }}>
-            <Stepper
-              label={`WEIGHT (${unit})`} value={w}
-              onMinus={() => step(setW, w, -2.5, 0)} onPlus={() => step(setW, w, 2.5, 0)}
-              onChange={(v) => setW(Math.max(0, v))}
-            />
+            {!noWeight && (
+              <Stepper
+                label={`WEIGHT (${unit})`} value={w}
+                onMinus={() => step(setW, w, -2.5, 0)} onPlus={() => step(setW, w, 2.5, 0)}
+                onChange={(v) => setW(Math.max(0, v))}
+              />
+            )}
             <Stepper
               label="REPS" value={r}
               onMinus={() => step(setR, r, -1, 1)} onPlus={() => step(setR, r, 1, 1)}
@@ -233,9 +237,13 @@ export default function LogScreen({
                 <div key={i}>
                   <div className="setrow" style={{ background: editing === i ? T.cardHi : T.card }}>
                     <span style={{ color: T.faint, width: 24, textAlign: "right" }}>{i + 1}</span>
-                    <span className="bignum">{s.w}</span>
-                    <span style={{ color: T.label }}>{unit}</span>
-                    <span style={{ color: T.faint, margin: "0 2px" }}>×</span>
+                    {!noWeight && (
+                      <>
+                        <span className="bignum">{s.w}</span>
+                        <span style={{ color: T.label }}>{unit}</span>
+                        <span style={{ color: T.faint, margin: "0 2px" }}>×</span>
+                      </>
+                    )}
                     <span className="bignum">{s.r}</span>
                     {isPR && <span className="pr">PR</span>}
                     <span style={{ flex: 1 }} />
@@ -301,10 +309,10 @@ export default function LogScreen({
                 <span style={{ fontWeight: 600 }}>
                   {parseDate(h.k).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
                 </span>
-                <span style={{ color: T.label, fontSize: 13 }}>est 1RM {round1(h.best)} {unit}</span>
+                {!noWeight && <span style={{ color: T.label, fontSize: 13 }}>est 1RM {round1(h.best)} {unit}</span>}
               </div>
               <div style={{ color: T.label, fontSize: 14 }}>
-                {h.sets.map((s) => `${s.w}×${s.r}`).join("  ·  ")}
+                {h.sets.map((s) => noWeight ? `${s.r} reps` : `${s.w}×${s.r}`).join("  ·  ")}
               </div>
             </div>
           ))}

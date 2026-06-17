@@ -79,6 +79,23 @@ export const DEFAULT_EXERCISES = [
   ["Cycling", "Cardio"], ["Sprint", "Cardio"], ["Box Step", "Cardio"],
 ].map(([name, group], i) => ({ id: "d" + i, name, group }));
 
+// Exercises where weight tracking doesn't apply — only reps (or duration) matter.
+export const BODYWEIGHT_EXERCISES = new Set([
+  // Chest
+  "Push Up", "Decline Push Up", "Diamond Push Up", "Dips", "Chest Dip",
+  // Back
+  "Pull Up", "Chin Up", "Inverted Row", "Hyperextension",
+  // Legs
+  "Box Jump", "Pistol Squat", "Glute Bridge", "Lunge", "Walking Lunge", "Reverse Lunge",
+  // Triceps
+  "Tricep Dip",
+  // Core
+  "Plank", "Side Plank", "Hanging Leg Raise", "Sit Up", "Decline Sit Up",
+  "Leg Raise", "V-Up", "Dead Bug", "Bird Dog", "Hollow Body Hold",
+  "Flutter Kicks", "Mountain Climbers", "Bicycle Crunch", "Toe Touch",
+  "Windshield Wiper", "Oblique Crunch", "Dragon Flag",
+]);
+
 export const EMPTY_DATA = {
   workouts: {},
   customExercises: [],
