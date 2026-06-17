@@ -42,7 +42,7 @@ jobs:
 
       - name: Set version code and name
         run: |
-          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/" android/app/build.gradle
+          sed -i "s/versionCode 1/versionCode $((  ${{ github.run_number }} + 100 ))/" android/app/build.gradle
           sed -i "s/versionName \"1.0\"/versionName \"$(node -p "require('./package.json').version")\"/" android/app/build.gradle
 
       - name: Remove unused Health Connect permissions
