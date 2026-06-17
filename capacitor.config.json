@@ -1,5 +1,5 @@
 {
-  "appId": "com.fitlog.app",
+  "appId": "com.fitlog_amaflow.app",
   "appName": "FitLog",
   "webDir": "dist",
   "plugins": {
