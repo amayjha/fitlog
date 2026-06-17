@@ -13,7 +13,6 @@ import BodyScreen from "./screens/BodyScreen.jsx";
 import MoreScreen from "./screens/MoreScreen.jsx";
 import TemplatesScreen from "./screens/TemplatesScreen.jsx";
 import GoalsScreen from "./screens/GoalsScreen.jsx";
-import CalculatorsScreen from "./screens/CalculatorsScreen.jsx";
 import CopyWorkoutScreen from "./screens/CopyWorkoutScreen.jsx";
 import NutritionScreen from "./screens/NutritionScreen.jsx";
 import FoodPickScreen from "./screens/FoodPickScreen.jsx";
@@ -392,9 +391,6 @@ export default function App() {
       )}
       {overlay?.name === "goals" && (
         <GoalsScreen {...shared} onBack={() => setOverlay(null)} />
-      )}
-      {overlay?.name === "calculators" && (
-        <CalculatorsScreen {...shared} onBack={() => setOverlay(null)} />
       )}
       {overlay?.name === "copyworkout" && (
         <CopyWorkoutScreen

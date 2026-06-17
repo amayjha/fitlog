@@ -7,7 +7,6 @@ import { isHealthAvailable, wasHealthPermitted, requestHealthPermissions, getRec
 const ITEMS = [
   { id: "templates", icon: "📋", label: "Templates", desc: "Save and reuse workout routines", color: "#0A84FF" },
   { id: "goals", icon: "🎯", label: "Goals", desc: "Set targets and track progress", color: "#30D158" },
-  { id: "calculators", icon: "🧮", label: "Calculators", desc: "1RM · Plates · Percentages", color: "#FF9F0A" },
 ];
 
 /* ── FitNotes category → our group ── */

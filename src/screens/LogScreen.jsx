@@ -19,6 +19,7 @@ export default function LogScreen({
   const [tab, setTab] = useState("track");
   const [w, setW] = useState(noWeight ? 0 : (last?.w ?? 20));
   const [r, setR] = useState(last?.r ?? 8);
+  const [wStep, setWStep] = useState(2.5);
   const [editing, setEditing] = useState(null);
   const [setNote, setSetNote] = useState("");
   const [noteOpenIdx, setNoteOpenIdx] = useState(null);
@@ -107,19 +108,34 @@ export default function LogScreen({
 
       {tab === "track" && (
         <>
-          <div className="panel" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(148px, 1fr))", gap: 16 }}>
-            {!noWeight && (
+          <div className="panel" style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: noWeight ? "1fr" : "repeat(auto-fit, minmax(148px, 1fr))", gap: 16 }}>
+              {!noWeight && (
+                <Stepper
+                  label={`WEIGHT (${unit})`} value={w}
+                  onMinus={() => step(setW, w, -wStep, 0)} onPlus={() => step(setW, w, wStep, 0)}
+                  onChange={(v) => setW(Math.max(0, v))}
+                />
+              )}
               <Stepper
-                label={`WEIGHT (${unit})`} value={w}
-                onMinus={() => step(setW, w, -2.5, 0)} onPlus={() => step(setW, w, 2.5, 0)}
-                onChange={(v) => setW(Math.max(0, v))}
+                label="REPS" value={r}
+                onMinus={() => step(setR, r, -1, 1)} onPlus={() => step(setR, r, 1, 1)}
+                onChange={(v) => setR(Math.max(1, Math.round(v)))}
               />
+            </div>
+            {!noWeight && (
+              <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
+                {[0.5, 1, 1.5, 2, 2.5].map((s) => (
+                  <button
+                    key={s}
+                    className={`chip${wStep === s ? " active" : ""}`}
+                    onClick={() => setWStep(s)}
+                  >
+                    ±{s}
+                  </button>
+                ))}
+              </div>
             )}
-            <Stepper
-              label="REPS" value={r}
-              onMinus={() => step(setR, r, -1, 1)} onPlus={() => step(setR, r, 1, 1)}
-              onChange={(v) => setR(Math.max(1, Math.round(v)))}
-            />
           </div>
 
           {/* Set note input when editing */}
