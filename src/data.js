@@ -103,6 +103,7 @@ export const EMPTY_DATA = {
   goals: [],
   body: [],
   unit: "kg",
+  weightStep: 2.5,
   lastSet: {},
   workoutNotes: {},
   meals: {},

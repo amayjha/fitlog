@@ -390,6 +390,29 @@ export default function MoreScreen({ data, persist, exportData, importData, allE
 
         <div style={{ height: 1, background: T.sep }} />
 
+        {/* Weight increment */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <div>
+              <div style={{ fontWeight: 600 }}>Weight increment</div>
+              <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>Step size for ± buttons when logging sets</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {[0.5, 1, 1.5, 2, 2.5].map((s) => (
+              <button
+                key={s}
+                className={`chip${(data.weightStep ?? 2.5) === s ? " active" : ""}`}
+                onClick={() => persist({ ...data, weightStep: s })}
+              >
+                ±{s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ height: 1, background: T.sep }} />
+
         {/* Export JSON */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
