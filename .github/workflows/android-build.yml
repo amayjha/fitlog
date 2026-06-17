@@ -28,11 +28,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Remove health plugin for Android build
-        run: npm uninstall @capgo/capacitor-health
-
       - name: Build web assets
         run: npm run build
+
+      - name: Remove health plugin for Android build
+        run: npm uninstall @capgo/capacitor-health
 
       - name: Add Android platform
         run: npx cap add android
