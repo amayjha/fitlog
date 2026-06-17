@@ -45,17 +45,22 @@ jobs:
           sed -i "s/versionCode 1/versionCode $((  ${{ github.run_number }} + 100 ))/" android/app/build.gradle
           sed -i "s/versionName \"1.0\"/versionName \"$(node -p "require('./package.json').version")\"/" android/app/build.gradle
 
-      - name: Remove unused Health Connect permissions
+      - name: Remove all sensitive permissions
         run: |
           MANIFEST=android/app/src/main/AndroidManifest.xml
-          sed -i '/READ_RESPIRATORY_RATE/d' $MANIFEST
-          sed -i '/READ_HEART_RATE/d' $MANIFEST
-          sed -i '/READ_BLOOD_OXYGEN/d' $MANIFEST
-          sed -i '/READ_BLOOD_PRESSURE/d' $MANIFEST
-          sed -i '/READ_BLOOD_GLUCOSE/d' $MANIFEST
-          sed -i '/READ_BODY_TEMPERATURE/d' $MANIFEST
-          sed -i '/READ_SLEEP/d' $MANIFEST
-          sed -i '/READ_NUTRITION/d' $MANIFEST
+          # Remove all Health Connect permissions
+          sed -i '/android.permission.health\./d' $MANIFEST
+          # Remove other sensitive permissions not used by the app
+          sed -i '/READ_CONTACTS/d' $MANIFEST
+          sed -i '/READ_CALL_LOG/d' $MANIFEST
+          sed -i '/ACCESS_FINE_LOCATION/d' $MANIFEST
+          sed -i '/ACCESS_COARSE_LOCATION/d' $MANIFEST
+          sed -i '/READ_EXTERNAL_STORAGE/d' $MANIFEST
+          sed -i '/WRITE_EXTERNAL_STORAGE/d' $MANIFEST
+          sed -i '/RECORD_AUDIO/d' $MANIFEST
+          sed -i '/CAMERA/d' $MANIFEST
+          echo "--- Remaining permissions ---"
+          grep -i "permission" $MANIFEST || true
 
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
