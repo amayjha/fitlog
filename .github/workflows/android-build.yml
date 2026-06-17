@@ -28,6 +28,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Remove health plugin for Android build
+        run: npm uninstall @capgo/capacitor-health
+
       - name: Build web assets
         run: npm run build
 
@@ -45,68 +48,6 @@ jobs:
           sed -i "s/versionCode 1/versionCode $((  ${{ github.run_number }} + 100 ))/" android/app/build.gradle
           sed -i "s/versionName \"1.0\"/versionName \"$(node -p "require('./package.json').version")\"/" android/app/build.gradle
 
-      - name: Remove all sensitive permissions
-        run: |
-          MANIFEST=android/app/src/main/AndroidManifest.xml
-          python3 - <<'EOF'
-          import re
-
-          path = 'android/app/src/main/AndroidManifest.xml'
-          with open(path, 'r') as f:
-              content = f.read()
-
-          # Add tools namespace if not present
-          if 'xmlns:tools' not in content:
-              content = content.replace(
-                  'xmlns:android="http://schemas.android.com/apk/res/android"',
-                  'xmlns:android="http://schemas.android.com/apk/res/android"\n    xmlns:tools="http://schemas.android.com/tools"'
-              )
-
-          # All health + sensitive permissions to forcibly remove
-          permissions = [
-              "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
-              "android.permission.health.READ_DISTANCE",
-              "android.permission.health.READ_ELEVATION_GAINED",
-              "android.permission.health.READ_EXERCISE",
-              "android.permission.health.READ_EXERCISE_ROUTE",
-              "android.permission.health.READ_FLOORS_CLIMBED",
-              "android.permission.health.READ_STEPS",
-              "android.permission.health.READ_TOTAL_CALORIES_BURNED",
-              "android.permission.health.READ_VO2_MAX",
-              "android.permission.health.READ_HEART_RATE",
-              "android.permission.health.READ_RESPIRATORY_RATE",
-              "android.permission.health.READ_BLOOD_OXYGEN",
-              "android.permission.health.READ_BLOOD_PRESSURE",
-              "android.permission.health.READ_BLOOD_GLUCOSE",
-              "android.permission.health.READ_BODY_FAT",
-              "android.permission.health.READ_BODY_TEMPERATURE",
-              "android.permission.health.READ_BODY_WATER_MASS",
-              "android.permission.health.READ_BONE_MASS",
-              "android.permission.health.READ_HEIGHT",
-              "android.permission.health.READ_LEAN_BODY_MASS",
-              "android.permission.health.READ_NUTRITION",
-              "android.permission.health.READ_SLEEP",
-              "android.permission.health.READ_SPEED",
-              "android.permission.health.READ_WEIGHT",
-              "android.permission.health.WRITE_ACTIVE_CALORIES_BURNED",
-              "android.permission.health.WRITE_DISTANCE",
-              "android.permission.health.WRITE_EXERCISE",
-              "android.permission.health.WRITE_HEART_RATE",
-              "android.permission.health.WRITE_STEPS",
-          ]
-
-          removals = '\n'.join(
-              f'    <uses-permission android:name="{p}" tools:node="remove"/>'
-              for p in permissions
-          )
-
-          content = content.replace('</manifest>', f'\n{removals}\n</manifest>')
-
-          with open(path, 'w') as f:
-              f.write(content)
-
-          print("Done — all health permissions marked for removal")
-          EOF
 
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
