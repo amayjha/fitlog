@@ -1,9 +1,47 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { T, GROUP_COLORS } from "../theme.js";
 import { e1rm, round1, fmtShortDate, parseDate } from "../utils.js";
 import { BODYWEIGHT_EXERCISES } from "../data.js";
 import Stepper from "../components/Stepper.jsx";
 import Graph from "../components/Graph.jsx";
+
+const DB_URL = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json";
+const IMG_BASE = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
+const SESSION_KEY = "fitlog:exercisedb";
+
+let dbPromise = null;
+
+function loadDb() {
+  if (dbPromise) return dbPromise;
+  try {
+    const cached = sessionStorage.getItem(SESSION_KEY);
+    if (cached) { dbPromise = Promise.resolve(new Map(JSON.parse(cached))); return dbPromise; }
+  } catch {}
+  dbPromise = fetch(DB_URL)
+    .then((r) => r.json())
+    .then((data) => {
+      const map = new Map();
+      for (const ex of data) {
+        if (ex.images?.length) map.set(ex.name.toLowerCase(), IMG_BASE + ex.images[0]);
+      }
+      try { sessionStorage.setItem(SESSION_KEY, JSON.stringify([...map])); } catch {}
+      return map;
+    })
+    .catch(() => new Map());
+  return dbPromise;
+}
+
+function bestMatch(name, map) {
+  const lower = name.toLowerCase();
+  if (map.has(lower)) return map.get(lower);
+  const words = lower.split(/\s+/).filter((w) => w.length > 3);
+  let best = 0, url = null;
+  for (const [key, val] of map) {
+    const score = words.filter((w) => key.includes(w)).length;
+    if (score > best) { best = score; url = val; }
+  }
+  return best >= 2 ? url : null;
+}
 
 export default function LogScreen({
   ex, key, date, data, todayEntries, bestByExercise,
@@ -31,6 +69,17 @@ export default function LogScreen({
   const [tabRestSecs, setTabRestSecs] = useState(10);
   const [tabRounds, setTabRounds] = useState(8);
   const [exerciseNoteOpen, setExerciseNoteOpen] = useState(false);
+  const [guideImage, setGuideImage] = useState(undefined); // undefined=pending, null=not found, string=url
+  const [guideFetching, setGuideFetching] = useState(false);
+
+  useEffect(() => {
+    if (guideImage !== undefined || guideFetching) return;
+    setGuideFetching(true);
+    loadDb()
+      .then((map) => setGuideImage(bestMatch(ex.name, map) ?? null))
+      .catch(() => setGuideImage(null))
+      .finally(() => setGuideFetching(false));
+  }, [ex.name, guideImage, guideFetching]);
 
   const step = (setter, val, delta, min) => setter(Math.max(min, round1(val + delta)));
 
@@ -295,6 +344,80 @@ export default function LogScreen({
                 onChange={(e) => setExerciseNote(ex.id, e.target.value)}
               />
             )}
+          </div>
+
+          {/* Guide */}
+          <div style={{ display: "grid", gap: 12 }}>
+            <div
+              style={{
+                borderRadius: 14,
+                overflow: "hidden",
+                background: T.card,
+                minHeight: 200,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                position: "relative",
+              }}
+            >
+              {(guideFetching || guideImage === undefined) && (
+                <span style={{ color: T.faint, fontSize: 13 }}>Loading image…</span>
+              )}
+              {!guideFetching && guideImage && (
+                <img
+                  src={guideImage}
+                  alt={`${ex.name} form`}
+                  style={{ width: "100%", display: "block", objectFit: "cover" }}
+                />
+              )}
+              {!guideFetching && guideImage === null && (
+                <div style={{ textAlign: "center", padding: 24 }}>
+                  <div style={{ fontSize: 48, marginBottom: 8 }}>🏋️</div>
+                  <div style={{ color: T.faint, fontSize: 13 }}>No image available</div>
+                </div>
+              )}
+              <div
+                style={{
+                  position: "absolute",
+                  top: 10,
+                  left: 10,
+                  background: color,
+                  color: "#fff",
+                  borderRadius: 6,
+                  padding: "2px 8px",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: 0.5,
+                }}
+              >
+                {ex.group.toUpperCase()}
+              </div>
+            </div>
+
+            <a
+              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name + " exercise tutorial proper form")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 10,
+                background: "#FF0000",
+                color: "#fff",
+                borderRadius: 12,
+                padding: "14px 20px",
+                fontWeight: 700,
+                fontSize: 15,
+                textDecoration: "none",
+              }}
+            >
+              <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+                <rect width="22" height="16" rx="4" fill="#FF0000" />
+                <polygon points="9,4 9,12 16,8" fill="white" />
+              </svg>
+              Watch {ex.name} Tutorial
+            </a>
           </div>
         </>
       )}

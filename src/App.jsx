@@ -16,6 +16,7 @@ import GoalsScreen from "./screens/GoalsScreen.jsx";
 import CopyWorkoutScreen from "./screens/CopyWorkoutScreen.jsx";
 import NutritionScreen from "./screens/NutritionScreen.jsx";
 import FoodPickScreen from "./screens/FoodPickScreen.jsx";
+import SummaryScreen from "./screens/SummaryScreen.jsx";
 
 /* ── Workout sharing ── */
 const buildShareText = (date, entries, exById, unit) => {
@@ -400,6 +401,9 @@ export default function App() {
           onBack={() => setOverlay(null)}
           onCopy={copyWorkout}
         />
+      )}
+      {overlay?.name === "summary" && (
+        <SummaryScreen data={data} exById={exById} onBack={() => setOverlay(null)} />
       )}
       {overlay?.name === "foodpick" && (
         <FoodPickScreen
