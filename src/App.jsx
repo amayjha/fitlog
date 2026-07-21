@@ -108,9 +108,11 @@ export default function App() {
   const [timer, setTimer] = useState(null);
   const timerRef = useRef(null);
   const saveTimeout = useRef(null);
+  const dataRef = useRef(data);
 
   /* ── Persistence ── */
   const persist = (next) => {
+    dataRef.current = next;
     setData(next);
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     saveTimeout.current = setTimeout(() => {
@@ -175,53 +177,60 @@ export default function App() {
 
   /* ── Workout mutations ── */
   const addExerciseToDay = (exId) => {
-    const entries = data.workouts[key] || [];
+    const d = dataRef.current;
+    const entries = d.workouts[key] || [];
     if (!entries.find((e) => e.exId === exId)) {
-      persist({ ...data, workouts: { ...data.workouts, [key]: [...entries, { exId, sets: [], note: "" }] } });
+      persist({ ...d, workouts: { ...d.workouts, [key]: [...entries, { exId, sets: [], note: "" }] } });
     }
     setOverlay({ name: "log", exId });
   };
 
   const addSet = (exId, w, r, note = "") => {
-    const entries = (data.workouts[key] || []).map((en) =>
+    const d = dataRef.current;
+    const entries = (d.workouts[key] || []).map((en) =>
       en.exId === exId ? { ...en, sets: [...en.sets, { w, r, note, ts: Date.now() }] } : en
     );
-    persist({ ...data, workouts: { ...data.workouts, [key]: entries }, lastSet: { ...data.lastSet, [exId]: { w, r } } });
+    persist({ ...d, workouts: { ...d.workouts, [key]: entries }, lastSet: { ...d.lastSet, [exId]: { w, r } } });
   };
 
   const updateSet = (exId, idx, w, r, note) => {
-    const entries = (data.workouts[key] || []).map((en) =>
+    const d = dataRef.current;
+    const entries = (d.workouts[key] || []).map((en) =>
       en.exId === exId
         ? { ...en, sets: en.sets.map((s, i) => (i === idx ? { ...s, w, r, note } : s)) }
         : en
     );
-    persist({ ...data, workouts: { ...data.workouts, [key]: entries } });
+    persist({ ...d, workouts: { ...d.workouts, [key]: entries } });
   };
 
   const deleteSet = (exId, idx) => {
-    const entries = (data.workouts[key] || []).map((en) =>
+    const d = dataRef.current;
+    const entries = (d.workouts[key] || []).map((en) =>
       en.exId === exId ? { ...en, sets: en.sets.filter((_, i) => i !== idx) } : en
     );
-    persist({ ...data, workouts: { ...data.workouts, [key]: entries } });
+    persist({ ...d, workouts: { ...d.workouts, [key]: entries } });
   };
 
   const removeExerciseFromDay = (exId) => {
-    const entries = (data.workouts[key] || []).filter((en) => en.exId !== exId);
-    const w = { ...data.workouts };
+    const d = dataRef.current;
+    const entries = (d.workouts[key] || []).filter((en) => en.exId !== exId);
+    const w = { ...d.workouts };
     if (entries.length) w[key] = entries; else delete w[key];
-    persist({ ...data, workouts: w });
+    persist({ ...d, workouts: w });
     setOverlay(null);
   };
 
   const setExerciseNote = (exId, note) => {
-    const entries = (data.workouts[key] || []).map((en) =>
+    const d = dataRef.current;
+    const entries = (d.workouts[key] || []).map((en) =>
       en.exId === exId ? { ...en, note } : en
     );
-    persist({ ...data, workouts: { ...data.workouts, [key]: entries } });
+    persist({ ...d, workouts: { ...d.workouts, [key]: entries } });
   };
 
   const copyWorkout = (selections) => {
-    const today = [...(data.workouts[key] || [])];
+    const d = dataRef.current;
+    const today = [...(d.workouts[key] || [])];
     for (const { exId, sets } of selections) {
       const idx = today.findIndex(e => e.exId === exId);
       const stamped = sets.map(s => ({ ...s, ts: Date.now() }));
@@ -231,57 +240,66 @@ export default function App() {
         today.push({ exId, sets: stamped, note: "" });
       }
     }
-    persist({ ...data, workouts: { ...data.workouts, [key]: today } });
+    persist({ ...d, workouts: { ...d.workouts, [key]: today } });
     setOverlay(null);
   };
 
   const addCustomExercise = (name, group) => {
+    const d = dataRef.current;
     const ex = { id: "c" + Date.now(), name: name.trim(), group };
-    persist({ ...data, customExercises: [...data.customExercises, ex] });
+    persist({ ...d, customExercises: [...d.customExercises, ex] });
     return ex.id;
   };
 
   const setWorkoutNote = (note) => {
-    persist({ ...data, workoutNotes: { ...data.workoutNotes, [key]: note } });
+    const d = dataRef.current;
+    persist({ ...d, workoutNotes: { ...d.workoutNotes, [key]: note } });
   };
 
   /* ── Templates ── */
   const saveTemplate = (name, exIds) => {
+    const d = dataRef.current;
     const tpl = { id: "t" + Date.now(), name: name.trim(), exIds, created: Date.now() };
-    persist({ ...data, templates: [...data.templates, tpl] });
+    persist({ ...d, templates: [...d.templates, tpl] });
   };
 
   const deleteTemplate = (id) => {
-    persist({ ...data, templates: data.templates.filter((t) => t.id !== id) });
+    const d = dataRef.current;
+    persist({ ...d, templates: d.templates.filter((t) => t.id !== id) });
   };
 
   const applyTemplate = (tpl) => {
-    const existing = data.workouts[key] || [];
+    const d = dataRef.current;
+    const existing = d.workouts[key] || [];
     const existingIds = new Set(existing.map((en) => en.exId));
     const toAdd = tpl.exIds.filter((id) => !existingIds.has(id) && exById[id]);
     if (!toAdd.length) return 0;
     const newEntries = [...existing, ...toAdd.map((exId) => ({ exId, sets: [], note: "" }))];
-    persist({ ...data, workouts: { ...data.workouts, [key]: newEntries } });
+    persist({ ...d, workouts: { ...d.workouts, [key]: newEntries } });
     return toAdd.length;
   };
 
   /* ── Goals ── */
   const addGoal = (exId, type, target) => {
+    const d = dataRef.current;
     const goal = { id: "g" + Date.now(), exId, type, target, created: Date.now(), achieved: null };
-    persist({ ...data, goals: [...data.goals, goal] });
+    persist({ ...d, goals: [...d.goals, goal] });
   };
 
   const deleteGoal = (id) => {
-    persist({ ...data, goals: data.goals.filter((g) => g.id !== id) });
+    const d = dataRef.current;
+    persist({ ...d, goals: d.goals.filter((g) => g.id !== id) });
   };
 
   const markGoalAchieved = (id) => {
-    persist({ ...data, goals: data.goals.map((g) => g.id === id ? { ...g, achieved: Date.now() } : g) });
+    const d = dataRef.current;
+    persist({ ...d, goals: d.goals.map((g) => g.id === id ? { ...g, achieved: Date.now() } : g) });
   };
 
   /* ── Body measurements ── */
   const addBodyEntry = (measurement) => {
-    persist({ ...data, body: [...data.body, { d: dkey(new Date()), ...measurement }] });
+    const d = dataRef.current;
+    persist({ ...d, body: [...d.body, { d: dkey(new Date()), ...measurement }] });
   };
 
   /* ── Export / Import ── */
