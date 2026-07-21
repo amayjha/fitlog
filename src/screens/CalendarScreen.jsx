@@ -4,7 +4,7 @@ import { dkey, isToday } from "../utils.js";
 
 const DOW_LABELS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
-export default function CalendarScreen({ date, setDate, data, setActiveTab, setOverlay }) {
+export default function CalendarScreen({ date, setDate, data, setActiveTab }) {
   const [viewYear, setViewYear] = useState(date.getFullYear());
   const [viewMonth, setViewMonth] = useState(date.getMonth());
 
@@ -134,20 +134,6 @@ export default function CalendarScreen({ date, setDate, data, setActiveTab, setO
           <span style={{ color: T.label }}>{trainedDays.size} total sessions</span>
         </div>
       </div>
-
-      {/* Summary shortcut */}
-      <button
-        className="card"
-        onClick={() => setOverlay({ name: "summary" })}
-        style={{ gap: 12 }}
-      >
-        <span style={{ fontSize: 22 }}>📊</span>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700 }}>Summary</div>
-          <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>Review progress over a date range</div>
-        </div>
-        <span style={{ color: T.faint }}>›</span>
-      </button>
 
       {/* Recent workouts */}
       <div style={{ color: T.faint, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>Recent</div>

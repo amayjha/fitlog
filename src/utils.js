@@ -24,3 +24,16 @@ export const round5 = (n) => Math.round(n / 5) * 5;
 
 export const fmtSecs = (s) =>
   `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+export const wrapText = (ctx, text, maxW) => {
+  const words = text.split(" ");
+  const lines = [];
+  let cur = "";
+  for (const w of words) {
+    const test = cur ? cur + " " + w : w;
+    if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; }
+    else cur = test;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+};

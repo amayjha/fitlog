@@ -3,6 +3,14 @@ import { T, GROUP_COLORS } from "../theme.js";
 import { dkey, fmtDate, isToday, e1rm, round1 } from "../utils.js";
 import { isHealthAvailable, wasHealthPermitted, getDayActivity } from "../utils/health.js";
 
+const RANGE_PRESETS = [
+  { label: "7d",  days: 7 },
+  { label: "30d", days: 30 },
+  { label: "90d", days: 90 },
+  { label: "1yr", days: 365 },
+  { label: "All", days: null },
+];
+
 export default function HomeScreen({
   date, setDate, key, todayEntries, exById, bestByExercise, data,
   addExerciseToDay, removeExerciseFromDay,
@@ -27,6 +35,28 @@ export default function HomeScreen({
   const [shareMsg, setShareMsg] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [noteOpen, setNoteOpen] = useState(false);
+
+  const [rangeFrom, setRangeFrom] = useState(dkey(new Date(Date.now() - 29 * 86400000)));
+  const [rangeTo, setRangeTo] = useState(dkey(new Date()));
+  const [rangePreset, setRangePreset] = useState(1);
+
+  const applyRangePreset = (idx, days) => {
+    setRangePreset(idx);
+    if (days === null) {
+      const keys = Object.keys(data.workouts).filter((k) => data.workouts[k].length).sort();
+      setRangeFrom(keys[0] || dkey(new Date()));
+    } else {
+      const d = new Date();
+      d.setDate(d.getDate() - (days - 1));
+      setRangeFrom(dkey(d));
+    }
+    setRangeTo(dkey(new Date()));
+  };
+
+  const rangeWorkoutCount = useMemo(
+    () => Object.keys(data.workouts).filter((k) => k >= rangeFrom && k <= rangeTo && data.workouts[k].length).length,
+    [data.workouts, rangeFrom, rangeTo]
+  );
 
   const shift = (n) => {
     const d = new Date(date);
@@ -271,6 +301,56 @@ export default function HomeScreen({
 
           </>
         )}
+      </div>
+
+      {/* Summary shortcut */}
+      <button className="card" onClick={() => setOverlay({ name: "summary" })} style={{ gap: 12 }}>
+        <span style={{ fontSize: 22 }}>📊</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700 }}>Summary</div>
+          <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>Review progress over a date range</div>
+        </div>
+        <span style={{ color: T.faint }}>›</span>
+      </button>
+
+      {/* Workout count over a picked date range */}
+      <div className="panel" style={{ display: "grid", gap: 10 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <span style={{ color: T.faint, fontSize: 12, letterSpacing: 1, textTransform: "uppercase" }}>Workouts</span>
+          <span style={{ fontWeight: 700, fontSize: 22, color: T.accent }}>{rangeWorkoutCount}</span>
+        </div>
+
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {RANGE_PRESETS.map((p, i) => (
+            <button
+              key={p.label}
+              className={`chip${rangePreset === i ? " active" : ""}`}
+              onClick={() => applyRangePreset(i, p.days)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <input
+            type="date"
+            className="input"
+            style={{ padding: "10px 12px", fontSize: 14 }}
+            value={rangeFrom}
+            max={rangeTo}
+            onChange={(e) => { setRangeFrom(e.target.value); setRangePreset(null); }}
+          />
+          <input
+            type="date"
+            className="input"
+            style={{ padding: "10px 12px", fontSize: 14 }}
+            value={rangeTo}
+            min={rangeFrom}
+            max={dkey(new Date())}
+            onChange={(e) => { setRangeTo(e.target.value); setRangePreset(null); }}
+          />
+        </div>
       </div>
     </div>
   );

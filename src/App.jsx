@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { css, T } from "./theme.js";
-import { dkey, e1rm, fmtDate, round1 } from "./utils.js";
+import { dkey, e1rm, fmtDate, round1, wrapText } from "./utils.js";
 import { DEFAULT_EXERCISES, EMPTY_DATA, STORAGE_KEY, loadData } from "./data.js";
 import BottomNav from "./components/BottomNav.jsx";
 import TimerBar from "./components/TimerBar.jsx";
@@ -30,19 +30,6 @@ const buildShareText = (date, entries, exById, unit) => {
   }
   lines.push("", `Total volume: ${round1(vol).toLocaleString()} ${unit}`);
   return lines.join("\n");
-};
-
-const wrapText = (ctx, text, maxW) => {
-  const words = text.split(" ");
-  const lines = [];
-  let cur = "";
-  for (const w of words) {
-    const test = cur ? cur + " " + w : w;
-    if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; }
-    else cur = test;
-  }
-  if (cur) lines.push(cur);
-  return lines;
 };
 
 const shareWorkoutImage = async (date, entries, exById, unit) => {
