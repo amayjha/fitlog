@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { T } from "../theme.js";
+import { T, THEMES } from "../theme.js";
 import { DEFAULT_EXERCISES } from "../data.js";
 import { uploadWorkoutsToGoogleDrive } from "../utils/googleDrive.js";
 
@@ -174,6 +174,7 @@ function exportFitNotesCSV(data, allExercises) {
 export default function MoreScreen({
   data, persist, allExercises, setOverlay, startTour,
   bgImage, bgError, setBackgroundImage, resetBackgroundImage,
+  themeName, changeTheme,
 }) {
   const csvRef  = useRef(null);
   const bgRef   = useRef(null);
@@ -297,6 +298,29 @@ export default function MoreScreen({
       </div>
 
       <div className="panel" style={{ display: "grid", gap: 12 }}>
+        {/* Theme */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <div>
+              <div style={{ fontWeight: 600 }}>Theme</div>
+              <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>Choose the app's look</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {Object.entries(THEMES).map(([id, theme]) => (
+              <button
+                key={id}
+                className={`chip${themeName === id ? " active" : ""}`}
+                onClick={() => changeTheme(id)}
+              >
+                {theme.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ height: 1, background: T.sep }} />
+
         {/* Background image */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>

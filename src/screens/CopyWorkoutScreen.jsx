@@ -247,7 +247,7 @@ export default function CopyWorkoutScreen({ data, exById, todayKey, onBack, onCo
                 background: allSelected ? T.accent : someSelected ? "rgba(192,123,82,0.2)" : "transparent",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                {allSelected && <span style={{ color: "#fff", fontSize: 13, lineHeight: 1 }}>✓</span>}
+                {allSelected && <span style={{ color: T.primaryText, fontSize: 13, lineHeight: 1 }}>✓</span>}
                 {someSelected && <span style={{ color: T.accent, fontSize: 13, lineHeight: 1 }}>−</span>}
               </div>
               <span className="plate" style={{ background: color }} />
@@ -283,7 +283,7 @@ export default function CopyWorkoutScreen({ data, exById, todayKey, onBack, onCo
                       }}
                       onClick={() => toggleSet(en.exId, i)}
                     >
-                      {isChecked && <span style={{ color: "#fff", fontSize: 12, lineHeight: 1 }}>✓</span>}
+                      {isChecked && <span style={{ color: T.primaryText, fontSize: 12, lineHeight: 1 }}>✓</span>}
                     </button>
 
                     <div style={{ flex: 1 }}>

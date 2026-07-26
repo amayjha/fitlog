@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { css, T } from "./theme.js";
+import { buildCss, applyTheme, DEFAULT_THEME } from "./theme.js";
 import { dkey, e1rm } from "./utils.js";
 import { DEFAULT_EXERCISES, EMPTY_DATA, STORAGE_KEY, loadData } from "./data.js";
 import BottomNav from "./components/BottomNav.jsx";
@@ -34,6 +34,12 @@ export default function App() {
   });
   const [bgImage, setBgImage] = useState(loadBgImage);
   const [bgError, setBgError] = useState(null);
+  const [themeName, setThemeName] = useState(() => {
+    let name = DEFAULT_THEME;
+    try { name = localStorage.getItem("fitlog:theme") || DEFAULT_THEME; } catch {}
+    applyTheme(name); // mutate the shared T object before first render, so there's no flash of the wrong theme
+    return name;
+  });
   const timerRef = useRef(null);
   const saveTimeout = useRef(null);
   const dataRef = useRef(data);
@@ -286,6 +292,13 @@ export default function App() {
     setBgError(null);
   };
 
+  /* ── Theme ── */
+  const changeTheme = (name) => {
+    applyTheme(name); // mutate T synchronously so the upcoming re-render already sees the new colors
+    setThemeName(name);
+    try { localStorage.setItem("fitlog:theme", name); } catch {}
+  };
+
   /* ── Timer helpers ── */
   const startTimer = (type, params = {}) => {
     if (type === "rest") {
@@ -314,13 +327,14 @@ export default function App() {
     exportData, importData, startTimer,
     setOverlay, setActiveTab, startTour,
     bgImage, bgError, setBackgroundImage, resetBackgroundImage,
+    themeName, changeTheme,
   };
 
   const showNav = !overlay;
 
   return (
     <div className="app" style={bgImage ? { backgroundImage: `url(${bgImage})` } : undefined}>
-      <style>{css}</style>
+      <style>{buildCss()}</style>
 
       {/* Tab content */}
       {!overlay && (
