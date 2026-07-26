@@ -13,11 +13,11 @@ const NavImage = (src) => ({ active }) => (
   />
 );
 
-const TodayIcon = NavImage("/icons/today.png");
-const CalendarIcon = NavImage("/icons/calendar.png");
-const TrophyIcon = NavImage("/icons/prs.png");
-const BodyIcon = NavImage("/icons/body.png");
-const FoodIcon = NavImage("/icons/food.png");
+const TodayIcon = NavImage("/icons/today.jpg");
+const CalendarIcon = NavImage("/icons/calendar.jpg");
+const TrophyIcon = NavImage("/icons/prs.jpg");
+const BodyIcon = NavImage("/icons/body.jpg");
+const FoodIcon = NavImage("/icons/food.jpg");
 
 const MoreIcon = ({ active }) => (
   <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
