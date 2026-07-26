@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { T, GROUP_COLORS } from "../theme.js";
-import { fmtDate } from "../utils.js";
-import { buildShareText, shareViaSheet } from "../utils/shareWorkout.js";
+import { buildShareText, buildWorkoutInsights, computeStreak, shareViaSheet, CARD_STYLES } from "../utils/shareWorkout.js";
+import SharePreviewCard from "../components/SharePreviewCard.jsx";
 
 const PLATFORMS = [
   { id: "x", label: "X", sub: "Post as a tweet", bg: "#000000", fg: "#fff", glyph: "𝕏" },
@@ -10,15 +10,18 @@ const PLATFORMS = [
   { id: "instagram", label: "Instagram", sub: "Share via Instagram app", bg: "linear-gradient(135deg,#F58529,#DD2A7B,#8134AF,#515BD4)", fg: "#fff", glyph: "📷" },
 ];
 
-export default function ShareWorkoutScreen({ data, exById, date, todayEntries, onBack }) {
+export default function ShareWorkoutScreen({ data, exById, date, todayEntries, bestByExercise, onBack }) {
   const loggedEntries = useMemo(
     () => todayEntries.filter((en) => exById[en.exId] && en.sets.length > 0),
     [todayEntries, exById]
   );
 
+  const [cardStyle, setCardStyle] = useState("classic");
   const [selected, setSelected] = useState(() => new Set(loggedEntries.map((en) => en.exId)));
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [caption, setCaption] = useState("");
+  const [captionEdited, setCaptionEdited] = useState(false);
 
   const allSelected = selected.size === loggedEntries.length;
 
@@ -33,11 +36,25 @@ export default function ShareWorkoutScreen({ data, exById, date, todayEntries, o
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(loggedEntries.map((en) => en.exId)));
 
   const selectedEntries = loggedEntries.filter((en) => selected.has(en.exId));
-  const caption = useMemo(
-    () => buildShareText(date, selectedEntries, exById, data.unit),
-    [date, selectedEntries, exById, data.unit]
+
+  const streak = useMemo(() => computeStreak(data.workouts, date), [data.workouts, date]);
+
+  const insights = useMemo(
+    () => buildWorkoutInsights(selectedEntries, exById, bestByExercise, streak),
+    [selectedEntries, exById, bestByExercise, streak]
   );
-  const canShare = selectedEntries.length > 0 && !busy;
+
+  const generatedCaption = useMemo(() => {
+    if (!selectedEntries.length) return "";
+    return buildShareText(date, selectedEntries, exById, data.unit, insights);
+  }, [date, selectedEntries, exById, data.unit, insights]);
+
+  // Keep the caption in sync with the selection until the user starts typing their own edits.
+  useEffect(() => {
+    if (!captionEdited) setCaption(generatedCaption);
+  }, [generatedCaption, captionEdited]);
+
+  const canShare = selectedEntries.length > 0 && !busy && caption.trim().length > 0;
 
   const showMsg = (text) => {
     if (!text) return;
@@ -54,7 +71,7 @@ export default function ShareWorkoutScreen({ data, exById, date, todayEntries, o
     if (!canShare) return;
     setBusy(true);
     try {
-      const { msg: result } = await shareViaSheet(date, selectedEntries, exById, data.unit);
+      const { msg: result } = await shareViaSheet(date, selectedEntries, exById, data.unit, caption, insights, cardStyle);
       showMsg(result);
     } catch {
       showMsg("Could not share — try again");
@@ -72,6 +89,11 @@ export default function ShareWorkoutScreen({ data, exById, date, todayEntries, o
     }
   };
 
+  const resetCaption = () => {
+    setCaption(generatedCaption);
+    setCaptionEdited(false);
+  };
+
   const handlePlatform = (id) => {
     if (!canShare) return;
     if (id === "x") return shareToX();
@@ -87,14 +109,35 @@ export default function ShareWorkoutScreen({ data, exById, date, todayEntries, o
         <span style={{ width: 64 }} />
       </header>
 
-      <div style={{ color: T.label, fontSize: 14 }}>{fmtDate(date)}</div>
-
       {loggedEntries.length === 0 ? (
         <div className="empty">Log a set today before sharing.</div>
       ) : (
         <>
+          {/* Card style — swipe-style pick like Strava's stat-card templates */}
+          <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+            {CARD_STYLES.map((s) => (
+              <button
+                key={s.id}
+                className={`chip${cardStyle === s.id ? " active" : ""}`}
+                onClick={() => setCardStyle(s.id)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* The card itself is the centerpiece — everything below just customizes and sends it */}
+          <SharePreviewCard
+            styleId={cardStyle}
+            date={date}
+            entries={selectedEntries.length ? selectedEntries : loggedEntries}
+            exById={exById}
+            unit={data.unit}
+            insights={selectedEntries.length ? insights : []}
+          />
+
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-            <span className="section-label">Exercises</span>
+            <span className="section-label">Include in card</span>
             <button className="ghostbtn" style={{ fontSize: 13, padding: "2px 8px", minHeight: 28 }} onClick={toggleAll}>
               {allSelected ? "Deselect all" : "Select all"}
             </button>
@@ -122,13 +165,25 @@ export default function ShareWorkoutScreen({ data, exById, date, todayEntries, o
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
               <span className="section-label">Caption</span>
-              <button className="ghostbtn" style={{ fontSize: 13, padding: "2px 8px", minHeight: 28 }} disabled={!selectedEntries.length} onClick={copyCaption}>
-                Copy
-              </button>
+              <div style={{ display: "flex", gap: 4 }}>
+                {captionEdited && (
+                  <button className="ghostbtn" style={{ fontSize: 13, padding: "2px 8px", minHeight: 28 }} onClick={resetCaption}>
+                    Reset
+                  </button>
+                )}
+                <button className="ghostbtn" style={{ fontSize: 13, padding: "2px 8px", minHeight: 28 }} disabled={!caption.trim()} onClick={copyCaption}>
+                  Copy
+                </button>
+              </div>
             </div>
-            <div className="panel" style={{ whiteSpace: "pre-wrap", fontSize: 14, color: T.text, lineHeight: 1.5 }}>
-              {selectedEntries.length ? caption : "Select at least one exercise to build a caption."}
-            </div>
+            <textarea
+              className="input"
+              style={{ whiteSpace: "pre-wrap", fontSize: 14, color: T.text, lineHeight: 1.5, minHeight: 120, resize: "vertical" }}
+              value={caption}
+              placeholder="Select at least one exercise to build a caption."
+              disabled={!selectedEntries.length}
+              onChange={(e) => { setCaption(e.target.value); setCaptionEdited(true); }}
+            />
           </div>
 
           <div>

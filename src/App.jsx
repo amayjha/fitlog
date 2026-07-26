@@ -368,7 +368,7 @@ export default function App() {
         <SummaryScreen data={data} exById={exById} onBack={() => setOverlay(null)} />
       )}
       {overlay?.name === "share" && (
-        <ShareWorkoutScreen data={data} exById={exById} date={date} todayEntries={todayEntries} onBack={() => setOverlay(null)} />
+        <ShareWorkoutScreen data={data} exById={exById} date={date} todayEntries={todayEntries} bestByExercise={bestByExercise} onBack={() => setOverlay(null)} />
       )}
       {overlay?.name === "foodpick" && (
         <FoodPickScreen

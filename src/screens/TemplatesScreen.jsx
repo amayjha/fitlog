@@ -9,6 +9,14 @@ export default function TemplatesScreen({
   const [selectedExIds, setSelectedExIds] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [toast, setToast] = useState(null);
+  const [exSearch, setExSearch] = useState("");
+  const [openGroup, setOpenGroup] = useState(null);
+
+  const groups = Object.keys(GROUP_COLORS);
+  const otherExercises = allExercises.filter((ex) => !todayEntries.find((en) => en.exId === ex.id));
+  const filteredOther = exSearch
+    ? otherExercises.filter((ex) => ex.name.toLowerCase().includes(exSearch.toLowerCase()))
+    : null;
 
   const showToast = (msg) => {
     setToast(msg);
@@ -19,6 +27,8 @@ export default function TemplatesScreen({
     setCreating(true);
     setTemplateName("");
     setSelectedExIds(todayEntries.map((en) => en.exId));
+    setExSearch("");
+    setOpenGroup(null);
   };
 
   const toggleEx = (exId) => {
@@ -97,24 +107,68 @@ export default function TemplatesScreen({
             </div>
           )}
 
-          {/* Add other exercises */}
-          <details style={{ color: T.label, fontSize: 13 }}>
-            <summary style={{ cursor: "pointer", padding: "4px 0" }}>Add other exercises ({selectedExIds.filter((id) => !todayEntries.find((en) => en.exId === id)).length} added)</summary>
-            <div style={{ marginTop: 8, display: "grid", gap: 4, maxHeight: 200, overflowY: "auto" }}>
-              {allExercises
-                .filter((ex) => !todayEntries.find((en) => en.exId === ex.id))
-                .map((ex) => {
-                  const sel = selectedExIds.includes(ex.id);
-                  return (
-                    <button key={ex.id} className="checkbox-row" style={{ padding: "8px 10px" }} onClick={() => toggleEx(ex.id)}>
-                      <div className={`checkbox${sel ? " checked" : ""}`}>{sel ? "✓" : ""}</div>
-                      <span className="plate sm" style={{ background: GROUP_COLORS[ex.group] || T.label }} />
-                      <span style={{ flex: 1, fontSize: 13 }}>{ex.name}</span>
-                    </button>
-                  );
-                })}
+          {/* Add other exercises — search + grouped list, same as the "+ Add exercise" picker */}
+          <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ color: T.label, fontSize: 12 }}>
+              Add other exercises ({selectedExIds.filter((id) => !todayEntries.find((en) => en.exId === id)).length} added)
             </div>
-          </details>
+            <input
+              className="input"
+              style={{ padding: "10px 12px", fontSize: 14 }}
+              placeholder="Search exercises…"
+              value={exSearch}
+              onChange={(e) => setExSearch(e.target.value)}
+            />
+            <div style={{ display: "grid", gap: 4, maxHeight: 260, overflowY: "auto" }}>
+              {filteredOther ? (
+                filteredOther.length ? (
+                  filteredOther.map((ex) => {
+                    const sel = selectedExIds.includes(ex.id);
+                    return (
+                      <button key={ex.id} className="checkbox-row" style={{ padding: "8px 10px" }} onClick={() => toggleEx(ex.id)}>
+                        <div className={`checkbox${sel ? " checked" : ""}`}>{sel ? "✓" : ""}</div>
+                        <span className="plate sm" style={{ background: GROUP_COLORS[ex.group] || T.label }} />
+                        <span style={{ flex: 1, fontSize: 13 }}>{ex.name}</span>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div style={{ color: T.faint, fontSize: 13, padding: "8px 4px" }}>No match.</div>
+                )
+              ) : (
+                groups.map((g) => {
+                  const list = otherExercises.filter((ex) => ex.group === g);
+                  if (!list.length) return null;
+                  const open = openGroup === g;
+                  return (
+                    <div key={g}>
+                      <button
+                        style={{
+                          display: "flex", alignItems: "center", gap: 8, width: "100%",
+                          padding: "8px 10px", background: "none", cursor: "pointer",
+                        }}
+                        onClick={() => setOpenGroup(open ? null : g)}
+                      >
+                        <span className="plate sm" style={{ background: GROUP_COLORS[g] }} />
+                        <span style={{ flex: 1, fontWeight: 700, fontSize: 13, textAlign: "left" }}>{g}</span>
+                        <span style={{ color: T.faint, fontSize: 12 }}>{list.length} {open ? "▾" : "▸"}</span>
+                      </button>
+                      {open &&
+                        list.map((ex) => {
+                          const sel = selectedExIds.includes(ex.id);
+                          return (
+                            <button key={ex.id} className="checkbox-row" style={{ padding: "8px 10px 8px 22px" }} onClick={() => toggleEx(ex.id)}>
+                              <div className={`checkbox${sel ? " checked" : ""}`}>{sel ? "✓" : ""}</div>
+                              <span style={{ flex: 1, fontSize: 13 }}>{ex.name}</span>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
 
           <div style={{ display: "flex", gap: 8 }}>
             <button className="primary" style={{ flex: 1 }} disabled={!templateName.trim() || !selectedExIds.length} onClick={handleSave}>
