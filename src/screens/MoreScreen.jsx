@@ -7,7 +7,10 @@ const ITEMS = [
   { id: "summary",   icon: "📊", label: "Workout Summary", desc: "Review your progress over a date range", color: "#C07B52" },
   { id: "templates", icon: "📋", label: "Templates", desc: "Save and reuse workout routines", color: "#0A84FF" },
   { id: "goals",     icon: "🎯", label: "Goals",     desc: "Set targets and track progress", color: "#30D158" },
+  { id: "community", icon: "👥", label: "Community", desc: "Share templates, food plans, and goals with other members", color: "#9855C8" },
 ];
+
+const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.fitlogamaflow.app";
 
 /* ── FitNotes category → our group ── */
 const CAT_MAP = {
@@ -540,6 +543,13 @@ export default function MoreScreen({
           </button>
         </div>
       </div>
+
+      <button
+        className="primary secondary"
+        onClick={() => window.open(PLAY_STORE_URL, "_blank", "noopener,noreferrer")}
+      >
+        ⭐ Rate FitLog on Play Store
+      </button>
 
       <div style={{ color: T.faint, fontSize: 11, textAlign: "center", marginTop: 4 }}>
         FitLog v1.0 · All data stored locally on this device

@@ -18,8 +18,10 @@ import NutritionScreen from "./screens/NutritionScreen.jsx";
 import FoodPickScreen from "./screens/FoodPickScreen.jsx";
 import SummaryScreen from "./screens/SummaryScreen.jsx";
 import ShareWorkoutScreen from "./screens/ShareWorkoutScreen.jsx";
+import CommunityScreen from "./screens/CommunityScreen.jsx";
 import Walkthrough from "./components/Walkthrough.jsx";
 import { loadBgImage, saveBgImage, clearBgImage } from "./utils/background.js";
+import { supabase } from "./utils/supabaseClient.js";
 
 /* ── Main App ── */
 export default function App() {
@@ -40,9 +42,55 @@ export default function App() {
     applyTheme(name); // mutate the shared T object before first render, so there's no flash of the wrong theme
     return name;
   });
+  const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authError, setAuthError] = useState(null);
+  const [authNotice, setAuthNotice] = useState(null);
   const timerRef = useRef(null);
   const saveTimeout = useRef(null);
   const dataRef = useRef(data);
+
+  /* ── Auth / Community session ── */
+  const loadProfile = async (userId) => {
+    const { data: row, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
+    setProfile(error ? null : row);
+  };
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s);
+      if (s) loadProfile(s.user.id);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      if (s) loadProfile(s.user.id); else setProfile(null);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  const signUp = async (email, password, username) => {
+    setAuthBusy(true);
+    setAuthError(null);
+    setAuthNotice(null);
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username } } });
+    if (error) setAuthError(error.message);
+    else if (!data.session) setAuthNotice("Check your email to confirm your account, then sign in.");
+    setAuthBusy(false);
+  };
+
+  const signIn = async (email, password) => {
+    setAuthBusy(true);
+    setAuthError(null);
+    setAuthNotice(null);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) setAuthError(error.message);
+    setAuthBusy(false);
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   /* ── Persistence ── */
   const persist = (next) => {
@@ -328,6 +376,7 @@ export default function App() {
     setOverlay, setActiveTab, startTour,
     bgImage, bgError, setBackgroundImage, resetBackgroundImage,
     themeName, changeTheme,
+    session, profile, authBusy, authError, authNotice, signUp, signIn, signOut,
   };
 
   const showNav = !overlay;
@@ -383,6 +432,9 @@ export default function App() {
       )}
       {overlay?.name === "share" && (
         <ShareWorkoutScreen data={data} exById={exById} date={date} todayEntries={todayEntries} bestByExercise={bestByExercise} onBack={() => setOverlay(null)} />
+      )}
+      {overlay?.name === "community" && (
+        <CommunityScreen {...shared} onBack={() => setOverlay(null)} />
       )}
       {overlay?.name === "foodpick" && (
         <FoodPickScreen
