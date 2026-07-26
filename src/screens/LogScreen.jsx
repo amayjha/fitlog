@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { T, GROUP_COLORS } from "../theme.js";
 import { e1rm, round1, fmtShortDate, parseDate } from "../utils.js";
 import { BODYWEIGHT_EXERCISES } from "../data.js";
+import { getExercisePhoto, saveExercisePhoto, removeExercisePhoto } from "../utils/exercisePhotos.js";
 import Stepper from "../components/Stepper.jsx";
 import Graph from "../components/Graph.jsx";
 
@@ -71,15 +72,42 @@ export default function LogScreen({
   const [exerciseNoteOpen, setExerciseNoteOpen] = useState(false);
   const [guideImage, setGuideImage] = useState(undefined); // undefined=pending, null=not found, string=url
   const [guideFetching, setGuideFetching] = useState(false);
+  const [customPhoto, setCustomPhoto] = useState(() => getExercisePhoto(ex.id));
+  const [photoError, setPhotoError] = useState(null);
+  const photoRef = useRef(null);
 
   useEffect(() => {
+    setCustomPhoto(getExercisePhoto(ex.id));
+    setPhotoError(null);
+  }, [ex.id]);
+
+  useEffect(() => {
+    if (customPhoto) return;
     if (guideImage !== undefined || guideFetching) return;
     setGuideFetching(true);
     loadDb()
       .then((map) => setGuideImage(bestMatch(ex.name, map) ?? null))
       .catch(() => setGuideImage(null))
       .finally(() => setGuideFetching(false));
-  }, [ex.name, guideImage, guideFetching]);
+  }, [ex.name, guideImage, guideFetching, customPhoto]);
+
+  const handlePhotoSelect = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setPhotoError(null);
+    try {
+      const dataUrl = await saveExercisePhoto(ex.id, file);
+      setCustomPhoto(dataUrl);
+    } catch (err) {
+      setPhotoError(err.message || "Could not save photo");
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    removeExercisePhoto(ex.id);
+    setCustomPhoto(null);
+  };
 
   const step = (setter, val, delta, min) => setter(Math.max(min, round1(val + delta)));
 
@@ -360,17 +388,21 @@ export default function LogScreen({
                 position: "relative",
               }}
             >
-              {(guideFetching || guideImage === undefined) && (
+              {customPhoto ? (
+                <img
+                  src={customPhoto}
+                  alt={`${ex.name} form`}
+                  style={{ width: "100%", display: "block", objectFit: "cover" }}
+                />
+              ) : (guideFetching || guideImage === undefined) ? (
                 <span style={{ color: T.faint, fontSize: 13 }}>Loading image…</span>
-              )}
-              {!guideFetching && guideImage && (
+              ) : guideImage ? (
                 <img
                   src={guideImage}
                   alt={`${ex.name} form`}
                   style={{ width: "100%", display: "block", objectFit: "cover" }}
                 />
-              )}
-              {!guideFetching && guideImage === null && (
+              ) : (
                 <div style={{ textAlign: "center", padding: 24 }}>
                   <div style={{ fontSize: 48, marginBottom: 8 }}>🏋️</div>
                   <div style={{ color: T.faint, fontSize: 13 }}>No image available</div>
@@ -392,7 +424,25 @@ export default function LogScreen({
               >
                 {ex.group.toUpperCase()}
               </div>
+              <button
+                className="chip"
+                style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.55)", color: "#fff", border: "none" }}
+                onClick={() => photoRef.current?.click()}
+              >
+                📷 {customPhoto ? "Change" : "Add your photo"}
+              </button>
+              <input ref={photoRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoSelect} />
             </div>
+
+            {customPhoto && (
+              <button className="ghostbtn" style={{ fontSize: 13, color: T.red, justifySelf: "start", padding: "2px 0" }} onClick={handleRemovePhoto}>
+                Remove custom photo
+              </button>
+            )}
+
+            {photoError && (
+              <div style={{ color: T.red, fontSize: 13 }}>⚠ {photoError}</div>
+            )}
 
             <a
               href={`https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name + " exercise tutorial proper form")}`}

@@ -221,7 +221,7 @@ export default function SummaryScreen({ data, exById, onBack }) {
     <div className="screen">
       <header className="header">
         <button className="ghostbtn" onClick={onBack}>‹ Back</button>
-        <div style={{ fontWeight: 700, fontSize: 17 }}>Summary</div>
+        <div style={{ fontWeight: 700, fontSize: 17 }}>Workout Summary</div>
         <button className="ghostbtn" onClick={handleExport} disabled={exporting} title="Export summary as image">
           {exporting ? "…" : "Export"}
         </button>

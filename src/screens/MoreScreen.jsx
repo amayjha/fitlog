@@ -4,7 +4,7 @@ import { DEFAULT_EXERCISES } from "../data.js";
 import { uploadWorkoutsToGoogleDrive } from "../utils/googleDrive.js";
 
 const ITEMS = [
-  { id: "summary",   icon: "📊", label: "Summary",   desc: "Review your progress over a date range", color: "#C07B52" },
+  { id: "summary",   icon: "📊", label: "Workout Summary", desc: "Review your progress over a date range", color: "#C07B52" },
   { id: "templates", icon: "📋", label: "Templates", desc: "Save and reuse workout routines", color: "#0A84FF" },
   { id: "goals",     icon: "🎯", label: "Goals",     desc: "Set targets and track progress", color: "#30D158" },
 ];
@@ -171,10 +171,15 @@ function exportFitNotesCSV(data, allExercises) {
   return setCount;
 }
 
-export default function MoreScreen({ data, persist, allExercises, setOverlay }) {
+export default function MoreScreen({
+  data, persist, allExercises, setOverlay, startTour,
+  bgImage, bgError, setBackgroundImage, resetBackgroundImage,
+}) {
   const csvRef  = useRef(null);
+  const bgRef   = useRef(null);
   const [importMsg, setImportMsg] = useState(null);
   const [clearConfirm, setClearConfirm] = useState(false);
+  const [bgPending, setBgPending] = useState(false);
 
   const [driveClientId, setDriveClientId] = useState(() => localStorage.getItem("fitlog:gclientid") || "");
   const [clientIdDraft, setClientIdDraft] = useState("");
@@ -206,6 +211,15 @@ export default function MoreScreen({ data, persist, allExercises, setOverlay }) 
     } finally {
       setDrivePending(false);
     }
+  };
+
+  const handleBgSelect = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBgPending(true);
+    await setBackgroundImage(file);
+    setBgPending(false);
   };
 
   const handleCSVImport = (e) => {
@@ -283,6 +297,45 @@ export default function MoreScreen({ data, persist, allExercises, setOverlay }) 
       </div>
 
       <div className="panel" style={{ display: "grid", gap: 12 }}>
+        {/* Background image */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+            {bgImage && (
+              <img
+                src={bgImage}
+                alt=""
+                style={{ width: 44, height: 44, borderRadius: 10, objectFit: "cover", flexShrink: 0 }}
+              />
+            )}
+            <div>
+              <div style={{ fontWeight: 600 }}>Background image</div>
+              <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>
+                {bgImage ? "Using your custom photo" : "Choose a photo to use as the app background"}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+            {bgImage && (
+              <button className="chip" onClick={resetBackgroundImage}>Reset</button>
+            )}
+            <button className="chip" disabled={bgPending} onClick={() => bgRef.current?.click()}>
+              {bgPending ? "Applying…" : "Choose Photo"}
+            </button>
+          </div>
+          <input ref={bgRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleBgSelect} />
+        </div>
+
+        {bgError && (
+          <div style={{
+            color: T.red, fontSize: 13, lineHeight: 1.4,
+            padding: "8px 10px", borderRadius: 10, background: "rgba(212,80,74,0.08)",
+          }}>
+            ⚠ {bgError}
+          </div>
+        )}
+
+        <div style={{ height: 1, background: T.sep }} />
+
         {/* Unit toggle */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
@@ -319,6 +372,19 @@ export default function MoreScreen({ data, persist, allExercises, setOverlay }) 
               </button>
             ))}
           </div>
+        </div>
+
+        <div style={{ height: 1, background: T.sep }} />
+
+        {/* Tutorial */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600 }}>Tutorial</div>
+            <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>
+              Replay the guided walkthrough of the app
+            </div>
+          </div>
+          <button className="chip" style={{ flexShrink: 0 }} onClick={startTour}>Start Tutorial</button>
         </div>
 
         <div style={{ height: 1, background: T.sep }} />

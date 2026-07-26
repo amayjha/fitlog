@@ -14,7 +14,7 @@ const RANGE_PRESETS = [
 export default function HomeScreen({
   date, setDate, key, todayEntries, exById, bestByExercise, data,
   addExerciseToDay, removeExerciseFromDay,
-  setWorkoutNote, shareWorkout, persist, setOverlay, setActiveTab,
+  setWorkoutNote, persist, setOverlay, setActiveTab,
 }) {
   const todayBtnRef = useRef(null);
   useEffect(() => {
@@ -31,8 +31,6 @@ export default function HomeScreen({
     });
   }, [date]);
 
-  const [shareOpen, setShareOpen] = useState(false);
-  const [shareMsg, setShareMsg] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [noteOpen, setNoteOpen] = useState(false);
 
@@ -86,12 +84,6 @@ export default function HomeScreen({
   const workoutNote = data.workoutNotes?.[key] || "";
   const editable = dkey(date) >= dkey(new Date());
 
-  const doShare = async (kind) => {
-    const msg = await shareWorkout(kind);
-    setShareOpen(false);
-    if (msg) { setShareMsg(msg); setTimeout(() => setShareMsg(null), 2500); }
-  };
-
   const handleDeleteClick = (e, exId) => {
     e.stopPropagation();
     if (confirmDeleteId === exId) {
@@ -125,7 +117,7 @@ export default function HomeScreen({
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {hasSets && (
-            <button className="ghostbtn" onClick={() => { setShareOpen((o) => !o); setConfirmDeleteId(null); }}>
+            <button className="ghostbtn" onClick={() => { setOverlay({ name: "share" }); setConfirmDeleteId(null); }}>
               Share
             </button>
           )}
@@ -138,22 +130,8 @@ export default function HomeScreen({
         </div>
       </header>
 
-      {/* Share panel */}
-      {shareOpen && (
-        <div className="panel" style={{ display: "flex", gap: 8 }}>
-          <button className="chip" style={{ flex: 1, justifyContent: "center", padding: "11px 0" }} onClick={() => doShare("text")}>
-            Share as text
-          </button>
-          <button className="chip" style={{ flex: 1, justifyContent: "center", padding: "11px 0" }} onClick={() => doShare("image")}>
-            Share as image
-          </button>
-        </div>
-      )}
-
-      {shareMsg && <div className="toast">{shareMsg}</div>}
-
       {/* Date strip */}
-      <div className="panel" style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 6 }}>
+      <div className="panel" data-tour="date-strip" style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 6 }}>
         <button className="navbtn" style={{ height: 48, borderRadius: 10 }} onClick={() => shift(-1)}>‹</button>
         <div className="strip">
           {strip.map((d) => {
@@ -203,7 +181,7 @@ export default function HomeScreen({
             <div style={{ fontSize: 15, marginBottom: 14 }}>Nothing logged for this day.</div>
             {editable && (
               <>
-                <button className="primary" onClick={() => setOverlay({ name: "pick" })}>+ Add exercise</button>
+                <button className="primary" data-tour="add-exercise" onClick={() => setOverlay({ name: "pick" })}>+ Add exercise</button>
                 <button className="ghostbtn" style={{ display: "block", margin: "6px auto 0" }} onClick={() => setOverlay({ name: "copyworkout" })}>
                   Copy previous workout
                 </button>
@@ -271,7 +249,7 @@ export default function HomeScreen({
             })}
 
             {editable && (
-              <button className="primary" onClick={() => setOverlay({ name: "pick" })}>
+              <button className="primary" data-tour="add-exercise" onClick={() => setOverlay({ name: "pick" })}>
                 + Add exercise
               </button>
             )}
@@ -303,22 +281,22 @@ export default function HomeScreen({
         )}
       </div>
 
-      {/* Summary shortcut */}
-      <button className="card" onClick={() => setOverlay({ name: "summary" })} style={{ gap: 12 }}>
-        <span style={{ fontSize: 22 }}>📊</span>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700 }}>Summary</div>
-          <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>Review progress over a date range</div>
-        </div>
-        <span style={{ color: T.faint }}>›</span>
-      </button>
+      {/* Workout Summary — date picker + count, both leading to the Summary screen */}
+      <div className="panel" data-tour="summary-card" style={{ display: "grid", gap: 10 }}>
+        <button
+          className="row"
+          onClick={() => setOverlay({ name: "summary" })}
+          style={{ width: "100%", textAlign: "left", background: "none" }}
+        >
+          <span style={{ fontSize: 20 }}>📊</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700 }}>Workout Summary</div>
+            <div style={{ color: T.label, fontSize: 13, marginTop: 1 }}>Review progress over a date range</div>
+          </div>
+          <span style={{ color: T.faint }}>›</span>
+        </button>
 
-      {/* Workout count over a picked date range */}
-      <div className="panel" style={{ display: "grid", gap: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-          <span style={{ color: T.faint, fontSize: 12, letterSpacing: 1, textTransform: "uppercase" }}>Workouts</span>
-          <span style={{ fontWeight: 700, fontSize: 22, color: T.accent }}>{rangeWorkoutCount}</span>
-        </div>
+        <div style={{ height: 1, background: T.sep }} />
 
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {RANGE_PRESETS.map((p, i) => (
@@ -351,6 +329,14 @@ export default function HomeScreen({
             onChange={(e) => { setRangeTo(e.target.value); setRangePreset(null); }}
           />
         </div>
+
+        <button
+          onClick={() => setOverlay({ name: "summary" })}
+          style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", width: "100%", textAlign: "left" }}
+        >
+          <span style={{ color: T.faint, fontSize: 12, letterSpacing: 1, textTransform: "uppercase" }}>Workouts</span>
+          <span style={{ fontWeight: 700, fontSize: 22, color: T.accent }}>{rangeWorkoutCount}</span>
+        </button>
       </div>
     </div>
   );
