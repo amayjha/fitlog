@@ -407,38 +407,25 @@ export default function MoreScreen({
 
         <div style={{ height: 1, background: T.sep }} />
 
-        {/* Import FitNotes CSV */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600 }}>Import</div>
-            <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>
-              Import from a FitNotes CSV export · Sets are merged, existing data is kept
-            </div>
+        {/* Import / Export: merged into one option */}
+        <div>
+          <div style={{ fontWeight: 600 }}>Import / Export</div>
+          <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>
+            FitNotes-compatible CSV · Import merges sets and keeps existing data
           </div>
-          <button className="chip" style={{ flexShrink: 0 }} onClick={() => csvRef.current?.click()}>Import CSV</button>
-          <input ref={csvRef} type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={handleCSVImport} />
-        </div>
-
-        <div style={{ height: 1, background: T.sep }} />
-
-        {/* Export FitNotes CSV */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600 }}>Export</div>
-            <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>
-              Download all workouts as a FitNotes-compatible CSV
-            </div>
+          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+            <button className="chip" onClick={() => csvRef.current?.click()}>Import CSV</button>
+            <button
+              className="chip"
+              onClick={() => {
+                const count = exportFitNotesCSV(data, allExercises || []);
+                showMsg(`Exported ${count} set${count !== 1 ? "s" : ""} to CSV`);
+              }}
+            >
+              Export CSV
+            </button>
+            <input ref={csvRef} type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={handleCSVImport} />
           </div>
-          <button
-            className="chip"
-            style={{ flexShrink: 0 }}
-            onClick={() => {
-              const count = exportFitNotesCSV(data, allExercises || []);
-              showMsg(`Exported ${count} set${count !== 1 ? "s" : ""} to CSV`);
-            }}
-          >
-            Export CSV
-          </button>
         </div>
 
         {importMsg && (
