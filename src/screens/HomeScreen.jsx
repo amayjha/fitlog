@@ -3,6 +3,7 @@ import { T, GROUP_COLORS } from "../theme.js";
 import { dkey, fmtDate, isToday, e1rm, round1 } from "../utils.js";
 import { isHealthAvailable, wasHealthPermitted, getDayActivity } from "../utils/health.js";
 import RecapBanner from "../components/RecapBanner.jsx";
+import MuscleHeatmap from "../components/MuscleHeatmap.jsx";
 
 const RANGE_PRESETS = [
   { label: "7d",  days: 7 },
@@ -57,6 +58,23 @@ export default function HomeScreen({
     () => Object.keys(data.workouts).filter((k) => k >= rangeFrom && k <= rangeTo && data.workouts[k].length).length,
     [data.workouts, rangeFrom, rangeTo]
   );
+
+  const rangeGroups = useMemo(() => {
+    const map = {};
+    for (const [k, entries] of Object.entries(data.workouts)) {
+      if (k < rangeFrom || k > rangeTo) continue;
+      for (const en of entries) {
+        const ex = exById[en.exId];
+        if (!ex || !en.sets.length) continue;
+        if (!map[ex.group]) map[ex.group] = { volume: 0, sets: 0 };
+        for (const s of en.sets) {
+          map[ex.group].volume += s.w * s.r;
+          map[ex.group].sets += 1;
+        }
+      }
+    }
+    return Object.entries(map).map(([group, v]) => ({ group, volume: v.volume, sets: v.sets }));
+  }, [data.workouts, exById, rangeFrom, rangeTo]);
 
   const shift = (n) => {
     const d = new Date(date);
@@ -333,6 +351,13 @@ export default function HomeScreen({
             onChange={(e) => { setRangeTo(e.target.value); setRangePreset(null); }}
           />
         </div>
+
+        {rangeGroups.length > 0 && (
+          <>
+            <div style={{ height: 1, background: T.sep }} />
+            <MuscleHeatmap groups={rangeGroups} unit={data.unit} />
+          </>
+        )}
 
         <button
           onClick={() => setOverlay({ name: "summary" })}
