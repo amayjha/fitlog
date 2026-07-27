@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { T, GROUP_COLORS } from "../theme.js";
 import { round1, wrapText } from "../utils.js";
+import MuscleHeatmap from "../components/MuscleHeatmap.jsx";
 
 const fmt = (d) => d.toISOString().slice(0, 10);
 
@@ -145,6 +146,7 @@ export default function SummaryScreen({ data, exById, onBack }) {
   const [activePreset, setActivePreset] = useState(1);
   const [exporting, setExporting] = useState(false);
   const [exportMsg, setExportMsg] = useState(null);
+  const [muscleView, setMuscleView] = useState("chart");
 
   const applyPreset = (idx, days) => {
     setActivePreset(idx);
@@ -161,7 +163,7 @@ export default function SummaryScreen({ data, exById, onBack }) {
     const workouts = [];
     let totalSets = 0, totalVolume = 0;
     const exMap = {}; // exId → { name, group, sessions, sets, volume, bestW }
-    const groupMap = {}; // group → { volume, sets }
+    const groupMap = {}; // group → { volume, sets, sessionSet, exSet }
 
     for (const [k, entries] of Object.entries(data.workouts)) {
       if (k < from || k > to) continue;
@@ -187,9 +189,11 @@ export default function SummaryScreen({ data, exById, onBack }) {
           totalSets   += 1;
           totalVolume += vol;
 
-          if (!groupMap[ex.group]) groupMap[ex.group] = { volume: 0, sets: 0 };
+          if (!groupMap[ex.group]) groupMap[ex.group] = { volume: 0, sets: 0, sessionSet: new Set(), exSet: new Set() };
           groupMap[ex.group].volume += vol;
           groupMap[ex.group].sets   += 1;
+          groupMap[ex.group].sessionSet.add(k);
+          groupMap[ex.group].exSet.add(en.exId);
         }
       }
     }
@@ -199,7 +203,7 @@ export default function SummaryScreen({ data, exById, onBack }) {
       .sort((a, b) => b.sessions - a.sessions);
 
     const groups = Object.entries(groupMap)
-      .map(([group, v]) => ({ group, ...v }))
+      .map(([group, v]) => ({ group, volume: v.volume, sets: v.sets, sessions: v.sessionSet.size, exercises: v.exSet.size }))
       .sort((a, b) => b.volume - a.volume);
 
     const maxGroupVol = groups[0]?.volume || 1;
@@ -287,39 +291,62 @@ export default function SummaryScreen({ data, exById, onBack }) {
         <div className="empty">No workouts found in this date range.</div>
       )}
 
-      {/* Muscle group breakdown */}
+      {/* Muscle distribution — Chart (stats table) / Body (heatmap) views, like Hevy's two tabs */}
       {stats.groups.length > 0 && (
         <div>
-          <div style={{ color: T.faint, fontSize: 11, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>
-            MUSCLE GROUPS
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+            <div style={{ color: T.faint, fontSize: 11, letterSpacing: 2, fontWeight: 700 }}>
+              MUSCLE DISTRIBUTION
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              {["chart", "body"].map((v) => (
+                <button
+                  key={v}
+                  className={`chip${muscleView === v ? " active" : ""}`}
+                  style={{ fontSize: 12, padding: "4px 10px" }}
+                  onClick={() => setMuscleView(v)}
+                >
+                  {v === "chart" ? "Chart" : "Body"}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="panel" style={{ display: "grid", gap: 12 }}>
-            {stats.groups.map(({ group, volume, sets }) => (
-              <div key={group}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span className="plate" style={{ background: GROUP_COLORS[group] || T.accent }} />
-                    <span style={{ fontWeight: 600, fontSize: 15 }}>{group}</span>
+
+          {muscleView === "chart" ? (
+            <div className="panel" style={{ display: "grid", gap: 12 }}>
+              {stats.groups.map(({ group, volume, sets, sessions, exercises }) => (
+                <div key={group}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span className="plate" style={{ background: GROUP_COLORS[group] || T.accent }} />
+                      <span style={{ fontWeight: 600, fontSize: 15 }}>{group}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 10, color: T.label, fontSize: 13 }}>
+                      <span>{sessions} session{sessions !== 1 ? "s" : ""}</span>
+                      <span>{exercises} ex</span>
+                      <span>{sets} sets</span>
+                      <span style={{ color: T.faint }}>
+                        {volume >= 1000 ? `${round1(volume / 1000)}k` : round1(volume)} {unit}
+                      </span>
+                    </div>
                   </div>
-                  <div style={{ display: "flex", gap: 12, color: T.label, fontSize: 13 }}>
-                    <span>{sets} sets</span>
-                    <span style={{ color: T.faint }}>
-                      {volume >= 1000 ? `${round1(volume / 1000)}k` : round1(volume)} {unit}
-                    </span>
+                  <div className="progress-track">
+                    <div
+                      className="progress-fill"
+                      style={{
+                        width: `${(volume / stats.maxGroupVol) * 100}%`,
+                        background: GROUP_COLORS[group] || T.accent,
+                      }}
+                    />
                   </div>
                 </div>
-                <div className="progress-track">
-                  <div
-                    className="progress-fill"
-                    style={{
-                      width: `${(volume / stats.maxGroupVol) * 100}%`,
-                      background: GROUP_COLORS[group] || T.accent,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="panel">
+              <MuscleHeatmap groups={stats.groups} unit={unit} />
+            </div>
+          )}
         </div>
       )}
 
