@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { T, GROUP_COLORS } from "../theme.js";
 
-// Front/back body renders (public/muscle/*.jpg) used as the base layer; regions below are
-// overlaid on top in the same 1024x1024 pixel space the images were rendered at, tinted by
-// each group's share of the max volume among trained groups this range. Untrained regions get
-// no overlay at all — the image's own baked-in coloring already reads fine on its own.
+// Front/back body renders (public/muscle/*.jpg) used as the base layer, shown as-is with no
+// color tint — regions are invisible hit areas (in the same 1024x1024 pixel space the images
+// were rendered at) so tapping still surfaces that group's stats below.
 const IMAGES = { front: "/muscle/front.jpg", back: "/muscle/back.jpg" };
+
+// Cropped tighter than the source images' full 1024x1024 canvas so the body fills the frame.
+const VIEW_BOX = "270 0 490 1024";
 
 const REGIONS = {
   front: [
@@ -35,15 +37,7 @@ export default function MuscleHeatmap({ groups, unit }) {
   const [selected, setSelected] = useState(null);
 
   const byGroup = Object.fromEntries(groups.map((g) => [g.group, g]));
-  const maxVol = Math.max(...groups.map((g) => g.volume), 1);
   const offBody = groups.filter((g) => !ALL_BODY_GROUPS.has(g.group));
-
-  const overlayFor = (group) => {
-    const g = byGroup[group];
-    if (!g) return null;
-    const intensity = g.volume / maxVol;
-    return { fill: GROUP_COLORS[group] || T.accent, opacity: 0.35 + intensity * 0.45 };
-  };
 
   const sel = selected ? byGroup[selected] : null;
 
@@ -61,18 +55,16 @@ export default function MuscleHeatmap({ groups, unit }) {
         ))}
       </div>
 
-      <svg viewBox="0 0 1024 1024" style={{ width: "100%", maxWidth: 260, margin: "0 auto", display: "block" }}>
-        <image href={IMAGES[view]} x={0} y={0} width={1024} height={1024} preserveAspectRatio="xMidYMid slice" />
+      <svg viewBox={VIEW_BOX} style={{ width: "100%", maxWidth: 260, margin: "0 auto", display: "block" }}>
+        <image href={IMAGES[view]} x={0} y={0} width={1024} height={1024} />
         {REGIONS[view].map((r, i) => {
-          const overlay = overlayFor(r.group);
           const isSel = selected === r.group;
           return (
             <g
               key={r.key || r.group + i}
               onClick={() => setSelected(isSel ? null : r.group)}
               style={{ cursor: "pointer" }}
-              fill={overlay ? overlay.fill : "transparent"}
-              opacity={overlay ? overlay.opacity : 1}
+              fill="transparent"
               stroke={isSel ? "#fff" : "transparent"}
               strokeWidth={6}
             >
