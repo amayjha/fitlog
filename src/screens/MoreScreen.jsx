@@ -409,7 +409,7 @@ export default function MoreScreen({
 
         {/* Import / Export: merged into one option */}
         <div>
-          <div style={{ fontWeight: 600 }}>Import / Export</div>
+          <div style={{ fontWeight: 600 }}>Import / Export Workout History</div>
           <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>
             FitNotes-compatible CSV · Import merges sets and keeps existing data
           </div>
