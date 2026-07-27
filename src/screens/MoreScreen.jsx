@@ -364,30 +364,20 @@ export default function MoreScreen({
 
         <div style={{ height: 1, background: T.sep }} />
 
-        {/* Unit toggle */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <div style={{ fontWeight: 600 }}>Weight unit</div>
-            <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>Used for all exercises and body tracking</div>
-          </div>
-          <button
-            className="chip active"
-            style={{ minWidth: 56, justifyContent: "center" }}
-            onClick={() => persist({ ...data, unit: data.unit === "kg" ? "lbs" : "kg" })}
-          >
-            {data.unit}
-          </button>
-        </div>
-
-        <div style={{ height: 1, background: T.sep }} />
-
-        {/* Weight increment */}
+        {/* Weight: unit + increment merged into one option */}
         <div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
             <div>
-              <div style={{ fontWeight: 600 }}>Weight increment</div>
-              <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>Step size for ± buttons when logging sets</div>
+              <div style={{ fontWeight: 600 }}>Weight</div>
+              <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>Unit and ± step size for exercises and body tracking</div>
             </div>
+            <button
+              className="chip active"
+              style={{ minWidth: 56, justifyContent: "center", flexShrink: 0 }}
+              onClick={() => persist({ ...data, unit: data.unit === "kg" ? "lbs" : "kg" })}
+            >
+              {data.unit}
+            </button>
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {[0.5, 1, 1.5, 2, 2.5].map((s) => (
