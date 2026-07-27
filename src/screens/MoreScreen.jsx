@@ -8,6 +8,7 @@ const ITEMS = [
   { id: "templates", icon: "📋", label: "Templates", desc: "Save and reuse workout routines", color: "#0A84FF" },
   { id: "goals",     icon: "🎯", label: "Goals",     desc: "Set targets and track progress", color: "#30D158" },
   { id: "community", icon: "👥", label: "Community", desc: "Share templates, food plans, and goals with other members", color: "#9855C8" },
+  { id: "recap", icon: "📖", label: "Iron Diary", desc: "Your monthly training story, narrated", color: "#D9B66B" },
 ];
 
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.fitlogamaflow.app";

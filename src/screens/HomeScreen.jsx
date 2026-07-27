@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { T, GROUP_COLORS } from "../theme.js";
 import { dkey, fmtDate, isToday, e1rm, round1 } from "../utils.js";
 import { isHealthAvailable, wasHealthPermitted, getDayActivity } from "../utils/health.js";
+import RecapBanner from "../components/RecapBanner.jsx";
 
 const RANGE_PRESETS = [
   { label: "7d",  days: 7 },
@@ -15,6 +16,7 @@ export default function HomeScreen({
   date, setDate, key, todayEntries, exById, bestByExercise, data,
   addExerciseToDay, removeExerciseFromDay,
   setWorkoutNote, persist, setOverlay, setActiveTab,
+  session, profile,
 }) {
   const todayBtnRef = useRef(null);
   useEffect(() => {
@@ -129,6 +131,8 @@ export default function HomeScreen({
           </button>
         </div>
       </header>
+
+      <RecapBanner data={data} exById={exById} session={session} profile={profile} setOverlay={setOverlay} />
 
       {/* Date strip */}
       <div className="panel" data-tour="date-strip" style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 6 }}>

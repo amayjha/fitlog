@@ -19,6 +19,7 @@ import FoodPickScreen from "./screens/FoodPickScreen.jsx";
 import SummaryScreen from "./screens/SummaryScreen.jsx";
 import ShareWorkoutScreen from "./screens/ShareWorkoutScreen.jsx";
 import CommunityScreen from "./screens/CommunityScreen.jsx";
+import RecapScreen from "./screens/RecapScreen.jsx";
 import Walkthrough from "./components/Walkthrough.jsx";
 import { loadBgImage, saveBgImage, clearBgImage } from "./utils/background.js";
 import { supabase } from "./utils/supabaseClient.js";
@@ -435,6 +436,9 @@ export default function App() {
       )}
       {overlay?.name === "community" && (
         <CommunityScreen {...shared} onBack={() => setOverlay(null)} />
+      )}
+      {overlay?.name === "recap" && (
+        <RecapScreen {...shared} onBack={() => setOverlay(null)} />
       )}
       {overlay?.name === "foodpick" && (
         <FoodPickScreen

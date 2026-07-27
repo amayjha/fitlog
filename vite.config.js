@@ -3,6 +3,13 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  server: {
+    // /api/recap is served by server/index.js (run separately via `npm run server`
+    // in dev) — this forwards it so the app can call the same relative path in dev and prod.
+    proxy: {
+      "/api": "http://localhost:8787",
+    },
+  },
   plugins: [
     react(),
     VitePWA({
