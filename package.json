@@ -15,12 +15,20 @@
     "test": "vitest run",
     "cap:sync": "npm run build && npx cap sync",
     "cap:ios": "npx cap open ios",
-    "cap:assets": "npx capacitor-assets generate --ios"
+    "cap:assets": "npx capacitor-assets generate --ios",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:open": "npx cap open android"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.0",
+    "@capacitor/app": "^8.1.1",
     "@capacitor/core": "^8.4.0",
+    "@capacitor/filesystem": "^8.1.2",
     "@capacitor/ios": "^8.4.0",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/share": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@capgo/capacitor-health": "^8.6.3",
     "@supabase/supabase-js": "^2.110.8",
     "express": "^4.21.2",

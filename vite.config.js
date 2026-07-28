@@ -14,6 +14,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      // Registered manually in main.jsx, gated to web only — a service worker inside the
+      // Capacitor WebView would fight the native app's own asset loading/caching.
+      injectRegister: false,
       includeAssets: ["icon-192.png", "icon-512.png"],
       manifest: {
         name: "FitLog — Workout Tracker",

@@ -5,6 +5,7 @@ import { computeRecap } from "../lib/recapEngine.js";
 import { CARD_STYLES } from "../utils/shareWorkout.js";
 import { shareRecapImage } from "../utils/recapShare.js";
 import RecapCard from "../components/RecapCard.jsx";
+import { getItem, setItem } from "../lib/storage.js";
 
 const cacheKey = (periodKey) => `fitlog:recap:${periodKey}`;
 
@@ -39,13 +40,12 @@ export default function RecapScreen({ data, exById, session, profile, onBack }) 
   );
 
   useEffect(() => {
+    let cancelled = false;
     setError(null);
-    try {
-      const raw = localStorage.getItem(cacheKey(period.periodKey));
-      setCached(raw ? JSON.parse(raw) : null);
-    } catch {
-      setCached(null);
-    }
+    getItem(cacheKey(period.periodKey))
+      .then((raw) => { if (!cancelled) setCached(raw ? JSON.parse(raw) : null); })
+      .catch(() => { if (!cancelled) setCached(null); });
+    return () => { cancelled = true; };
   }, [period.periodKey]);
 
   const showMsg = (text) => {
@@ -72,7 +72,7 @@ export default function RecapScreen({ data, exById, session, profile, onBack }) 
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Couldn't generate your recap.");
       const entry = { recap: json.recap, generatedAt: json.generatedAt, regenerated: wasCached };
-      localStorage.setItem(cacheKey(period.periodKey), JSON.stringify(entry));
+      await setItem(cacheKey(period.periodKey), JSON.stringify(entry));
       setCached(entry);
     } catch (err) {
       setError(err.message || "Something went wrong — try again.");

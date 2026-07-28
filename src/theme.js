@@ -138,6 +138,7 @@ export const buildCss = () => `
     font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', system-ui, sans-serif;
     font-size: 17px; line-height: 1.55;
     overscroll-behavior-y: none;
+    padding-top: env(safe-area-inset-top);
   }
   /* Scrim so the background image doesn't overpower text — tinted per theme */
   .app::before {

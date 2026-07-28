@@ -1,4 +1,5 @@
 import { Health } from "@capgo/capacitor-health";
+import { getItemSync, setItem } from "../lib/storage.js";
 
 const LS_PERMITTED = "fitlog:health-permitted";
 
@@ -12,7 +13,7 @@ export async function isHealthAvailable() {
 }
 
 export function wasHealthPermitted() {
-  return localStorage.getItem(LS_PERMITTED) === "1";
+  return getItemSync(LS_PERMITTED) === "1";
 }
 
 export async function requestHealthPermissions() {
@@ -20,7 +21,7 @@ export async function requestHealthPermissions() {
     read: ["steps", "calories", "workouts"],
     write: [],
   });
-  localStorage.setItem(LS_PERMITTED, "1");
+  await setItem(LS_PERMITTED, "1");
 }
 
 export async function getDayActivity(date) {

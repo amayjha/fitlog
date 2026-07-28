@@ -4,8 +4,8 @@
   "webDir": "dist",
   "plugins": {
     "SplashScreen": {
-      "launchShowDuration": 1500,
-      "launchAutoHide": true,
+      "launchShowDuration": 0,
+      "launchAutoHide": false,
       "backgroundColor": "#F5EFE8",
       "androidSplashResourceName": "splash",
       "androidScaleType": "CENTER_CROP",
@@ -17,6 +17,9 @@
       "style": "Dark",
       "backgroundColor": "#F5EFE8"
     }
+  },
+  "android": {
+    "allowMixedContent": false
   },
   "ios": {
     "contentInset": "automatic",

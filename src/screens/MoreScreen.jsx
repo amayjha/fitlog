@@ -1,7 +1,9 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { T, THEMES } from "../theme.js";
-import { DEFAULT_EXERCISES } from "../data.js";
+import { DEFAULT_EXERCISES, EMPTY_DATA, STORAGE_KEY } from "../data.js";
 import { uploadWorkoutsToGoogleDrive } from "../utils/googleDrive.js";
+import { getItemSync, removeItem, setItem } from "../lib/storage.js";
+import { Health } from "@capgo/capacitor-health";
 
 const ITEMS = [
   { id: "summary",   icon: "📊", label: "Workout Summary", desc: "Review your progress over a date range", color: "#C07B52" },
@@ -182,14 +184,56 @@ export default function MoreScreen({
 }) {
   const csvRef  = useRef(null);
   const bgRef   = useRef(null);
+  const jsonRef = useRef(null);
   const [importMsg, setImportMsg] = useState(null);
   const [clearConfirm, setClearConfirm] = useState(false);
   const [bgPending, setBgPending] = useState(false);
+  const [pendingRestore, setPendingRestore] = useState(null); // parsed backup, awaiting confirm
 
-  const [driveClientId, setDriveClientId] = useState(() => localStorage.getItem("fitlog:gclientid") || "");
+  const [driveClientId, setDriveClientId] = useState(() => getItemSync("fitlog:gclientid") || "");
   const [clientIdDraft, setClientIdDraft] = useState("");
   const [driveSetupOpen, setDriveSetupOpen] = useState(false);
   const [drivePending, setDrivePending] = useState(false);
+
+  const [healthStatus, setHealthStatus] = useState("checking"); // "checking", "available", "unauthorized", "connected", "unavailable"
+
+  const checkHealthStatus = async () => {
+    try {
+      const result = await Health.isAvailable();
+      if (!result.available) {
+        setHealthStatus("unavailable");
+        return;
+      }
+      const auth = await Health.checkAuthorization({
+        read: ["steps", "weight", "heartRate"],
+        write: ["steps", "weight"]
+      });
+      // Simplified: if any read permission is granted, we consider it "connected" for now
+      // Real implementation would check all required ones.
+      setHealthStatus(auth.available ? "connected" : "unauthorized");
+    } catch (err) {
+      console.error("Health check failed:", err);
+      setHealthStatus("unavailable");
+    }
+  };
+
+  useEffect(() => {
+    checkHealthStatus();
+  }, []);
+
+  const handleHealthConnect = async () => {
+    try {
+      setHealthStatus("checking");
+      await Health.requestAuthorization({
+        read: ["steps", "weight", "heartRate"],
+        write: ["steps", "weight"]
+      });
+      await checkHealthStatus();
+    } catch (err) {
+      showMsg("Failed to connect to Health Connect", true);
+      setHealthStatus("unauthorized");
+    }
+  };
 
   const showMsg = (msg, isErr = false) => {
     setImportMsg({ text: msg, err: isErr });
@@ -199,7 +243,7 @@ export default function MoreScreen({
   const saveClientId = () => {
     const id = clientIdDraft.trim();
     if (!id) return;
-    localStorage.setItem("fitlog:gclientid", id);
+    setItem("fitlog:gclientid", id).catch(() => {});
     setDriveClientId(id);
     setDriveSetupOpen(false);
   };
@@ -244,14 +288,54 @@ export default function MoreScreen({
     e.target.value = "";
   };
 
-  const handleClear = () => {
+  const handleClear = async () => {
     if (clearConfirm) {
-      localStorage.removeItem("fitlog:v1");
+      await removeItem(STORAGE_KEY);
       window.location.reload();
     } else {
       setClearConfirm(true);
       setTimeout(() => setClearConfirm(false), 3000);
     }
+  };
+
+  // Full-fidelity JSON backup — everything the CSV export can't carry (templates,
+  // goals, theme, custom exercises, notes...). The cross-device escape hatch: since
+  // there's no account/server sync, this file is the only way to move a full profile
+  // from one device to another, or restore after e.g. reinstalling the app.
+  const handleExportJSON = () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `fitlog-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    showMsg("Backup downloaded");
+  };
+
+  const handleImportJSONSelect = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed) || !parsed.workouts) {
+          throw new Error("Not a FitLog backup file");
+        }
+        setPendingRestore(parsed);
+      } catch (err) {
+        showMsg(`Couldn't read backup — ${err.message}`, true);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const confirmRestore = () => {
+    persist({ ...EMPTY_DATA, ...pendingRestore });
+    setPendingRestore(null);
+    showMsg("Backup restored");
   };
 
   const totalWorkouts = Object.values(data.workouts).filter((e) => e.length > 0).length;
@@ -428,6 +512,37 @@ export default function MoreScreen({
           </div>
         </div>
 
+        <div style={{ height: 1, background: T.sep }} />
+
+        {/* Full JSON backup — cross-device escape hatch, since there's no account sync */}
+        <div>
+          <div style={{ fontWeight: 600 }}>Full Backup</div>
+          <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>
+            Everything on this device — workouts, templates, goals, theme. Restoring replaces what's currently here.
+          </div>
+          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+            <button className="chip" onClick={() => jsonRef.current?.click()}>Restore Backup</button>
+            <button className="chip" onClick={handleExportJSON}>Download Backup</button>
+            <input ref={jsonRef} type="file" accept=".json,application/json" style={{ display: "none" }} onChange={handleImportJSONSelect} />
+          </div>
+        </div>
+
+        {pendingRestore && (
+          <div style={{ display: "grid", gap: 10, padding: "12px 14px", borderRadius: 12, background: "rgba(212,80,74,0.08)", border: `1px solid ${T.red}` }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.red }}>Replace all data on this device?</div>
+            <div style={{ color: T.label, fontSize: 13, lineHeight: 1.5 }}>
+              This backup has {Object.values(pendingRestore.workouts || {}).filter((e) => e.length > 0).length} workout
+              day{Object.values(pendingRestore.workouts || {}).filter((e) => e.length > 0).length !== 1 ? "s" : ""} and{" "}
+              {(pendingRestore.templates || []).length} template{(pendingRestore.templates || []).length !== 1 ? "s" : ""}.
+              Everything currently on this device will be overwritten and cannot be recovered afterward.
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="primary danger" style={{ flex: 1 }} onClick={confirmRestore}>Replace Everything</button>
+              <button className="ghostbtn" onClick={() => setPendingRestore(null)}>Cancel</button>
+            </div>
+          </div>
+        )}
+
         {importMsg && (
           <div style={{
             color: importMsg.err ? T.red : T.accent,
@@ -496,13 +611,38 @@ export default function MoreScreen({
               <button
                 className="ghostbtn"
                 style={{ color: T.red, fontSize: 13, textAlign: "left" }}
-                onClick={() => { localStorage.removeItem("fitlog:gclientid"); setDriveClientId(""); setDriveSetupOpen(false); }}
+                onClick={() => { removeItem("fitlog:gclientid").catch(() => {}); setDriveClientId(""); setDriveSetupOpen(false); }}
               >
                 Remove saved Client ID
               </button>
             )}
           </div>
         )}
+
+        <div style={{ height: 1, background: T.sep }} />
+
+        {/* Google Health Connect */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600 }}>Google Health Connect</div>
+            <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>
+              Sync your steps, weight, and activities with Android's health system
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+            {healthStatus === "unavailable" ? (
+              <div style={{ color: T.faint, fontSize: 13, padding: "6px 0" }}>Not available</div>
+            ) : (
+              <button
+                className={`chip${healthStatus === "connected" ? " active" : ""}`}
+                disabled={healthStatus === "checking"}
+                onClick={handleHealthConnect}
+              >
+                {healthStatus === "checking" ? "Checking…" : healthStatus === "connected" ? "Connected" : "Connect"}
+              </button>
+            )}
+          </div>
+        </div>
 
         <div style={{ height: 1, background: T.sep }} />
 

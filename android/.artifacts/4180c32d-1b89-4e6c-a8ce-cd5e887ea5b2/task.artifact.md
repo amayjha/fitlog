@@ -1,0 +1,5 @@
+- [x] Update `.gitignore` to exclude signing files
+- [x] Create `keystore.properties` template
+- [x] Modify `app/build.gradle` to load signing config
+- [x] Generate release keystore (User interaction required for passwords)
+- [x] Build Release Bundle (`.aab`)

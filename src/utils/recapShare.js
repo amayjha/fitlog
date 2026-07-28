@@ -1,8 +1,19 @@
 // Share-card renderer for the Iron Diary recap — same approach as renderWorkoutImage in
 // shareWorkout.js (hand-drawn Canvas 2D, no html-to-image), reusing its palettes so the
 // recap card matches the existing share-card look across Classic/Dark/Mono.
+import { Capacitor } from "@capacitor/core";
+import { Filesystem, Directory } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 import { wrapText } from "../utils.js";
 import { CARD_PALETTES, downloadBlob } from "./shareWorkout.js";
+
+const blobToBase64 = (blob) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result).split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 
 const FONT = "-apple-system, 'SF Pro Display', system-ui, sans-serif";
 
@@ -112,12 +123,28 @@ export const renderRecapImage = async (recap, stats, styleId = "classic") => {
   return new Promise((res) => c.toBlob(res, "image/png"));
 };
 
-// Same share-sheet-first, download-fallback flow as shareViaSheet in shareWorkout.js.
+// Native: write the PNG into the cache dir and hand its file:// URI to the native share
+// sheet — navigator.share's file support is inconsistent across WebViews, so this is the
+// reliable path once wrapped in a native shell. Web: unchanged share-sheet-first,
+// download-fallback flow (same pattern as shareViaSheet in shareWorkout.js).
 export const shareRecapImage = async (recap, stats, styleId = "classic") => {
   const blob = await renderRecapImage(recap, stats, styleId);
   if (!blob) return { msg: null };
-  const file = new File([blob], `fitlog-recap-${stats.period.start}.png`, { type: "image/png" });
+  const filename = `fitlog-recap-${stats.period.start}.png`;
 
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const base64Data = await blobToBase64(blob);
+      const written = await Filesystem.writeFile({ path: filename, data: base64Data, directory: Directory.Cache });
+      await Share.share({ title: recap.headline, text: recap.one_liner, url: written.uri });
+      return { msg: "Shared" };
+    } catch (e) {
+      if (e?.message?.toLowerCase().includes("cancel")) return { msg: null }; // user dismissed the share sheet
+      return { msg: "Could not share — try again" };
+    }
+  }
+
+  const file = new File([blob], filename, { type: "image/png" });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
       await navigator.share({ files: [file], text: recap.one_liner });
@@ -126,6 +153,6 @@ export const shareRecapImage = async (recap, stats, styleId = "classic") => {
       if (e.name === "AbortError") return { msg: null };
     }
   }
-  downloadBlob(blob, `fitlog-recap-${stats.period.start}.png`);
+  downloadBlob(blob, filename);
   return { msg: "Image saved — attach it to your post" };
 };

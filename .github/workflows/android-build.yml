@@ -34,12 +34,6 @@ jobs:
       - name: Remove health plugin for Android build
         run: npm uninstall @capgo/capacitor-health
 
-      - name: Add Android platform
-        run: npx cap add android
-
-      - name: Set minSdkVersion to 26
-        run: sed -i 's/minSdkVersion = 24/minSdkVersion = 26/' android/variables.gradle
-
       - name: Sync Capacitor
         run: npx cap sync android
 

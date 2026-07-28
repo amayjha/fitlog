@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { T } from "../theme.js";
 import { dkey } from "../utils.js";
 import { getMilestones } from "../lib/recapEngine.js";
+import { getItemSync, setItem } from "../lib/storage.js";
 
 const seenKey = (id) => `fitlog:recap:seen:${id}`;
 
@@ -47,13 +48,13 @@ export default function RecapBanner({ data, exById, session, profile, setOverlay
       }
     }
 
-    return candidates.find((c) => c.id !== dismissedId && !localStorage.getItem(seenKey(c.id))) || null;
+    return candidates.find((c) => c.id !== dismissedId && !getItemSync(seenKey(c.id))) || null;
   }, [isPaid, data.workouts, exById, data.unit, dismissedId]);
 
   if (!trigger) return null;
 
   const dismiss = () => {
-    localStorage.setItem(seenKey(trigger.id), "1");
+    setItem(seenKey(trigger.id), "1").catch(() => {});
     setDismissedId(trigger.id);
   };
 

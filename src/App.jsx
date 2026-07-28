@@ -23,6 +23,8 @@ import RecapScreen from "./screens/RecapScreen.jsx";
 import Walkthrough from "./components/Walkthrough.jsx";
 import { loadBgImage, saveBgImage, clearBgImage } from "./utils/background.js";
 import { supabase } from "./utils/supabaseClient.js";
+import { getItemSync, setItem } from "./lib/storage.js";
+import { applyStatusBarForTheme, exitApp, hideSplashScreen, onBackButton } from "./lib/nativeInit.js";
 
 /* ── Main App ── */
 export default function App() {
@@ -32,14 +34,14 @@ export default function App() {
   const [overlay, setOverlay] = useState(null); // { name, ...params }
   const [timer, setTimer] = useState(null);
   const [tourActive, setTourActive] = useState(() => {
-    try { return localStorage.getItem(STORAGE_KEY) === null; }
+    try { return getItemSync(STORAGE_KEY) === null; }
     catch { return false; }
   });
   const [bgImage, setBgImage] = useState(loadBgImage);
   const [bgError, setBgError] = useState(null);
   const [themeName, setThemeName] = useState(() => {
     let name = DEFAULT_THEME;
-    try { name = localStorage.getItem("fitlog:theme") || DEFAULT_THEME; } catch {}
+    try { name = getItemSync("fitlog:theme") || DEFAULT_THEME; } catch {}
     applyTheme(name); // mutate the shared T object before first render, so there's no flash of the wrong theme
     return name;
   });
@@ -70,6 +72,19 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  /* ── Native: status bar + splash (once), back button (re-armed on nav state change) ── */
+  useEffect(() => {
+    applyStatusBarForTheme(themeName);
+    hideSplashScreen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => onBackButton(() => {
+    if (overlay) setOverlay(null);
+    else if (activeTab !== "today") setActiveTab("today");
+    else exitApp();
+  }), [overlay, activeTab]);
+
   const signUp = async (email, password, username) => {
     setAuthBusy(true);
     setAuthError(null);
@@ -98,8 +113,8 @@ export default function App() {
     dataRef.current = next;
     setData(next);
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
-    saveTimeout.current = setTimeout(() => {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
+    saveTimeout.current = setTimeout(async () => {
+      try { await setItem(STORAGE_KEY, JSON.stringify(next)); }
       catch (e) { console.error("Save failed", e); }
     }, 300);
   };
@@ -345,7 +360,8 @@ export default function App() {
   const changeTheme = (name) => {
     applyTheme(name); // mutate T synchronously so the upcoming re-render already sees the new colors
     setThemeName(name);
-    try { localStorage.setItem("fitlog:theme", name); } catch {}
+    setItem("fitlog:theme", name).catch(() => {});
+    applyStatusBarForTheme(name);
   };
 
   /* ── Timer helpers ── */

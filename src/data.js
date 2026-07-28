@@ -1,3 +1,5 @@
+import { getItemSync } from "./lib/storage.js";
+
 export const DEFAULT_EXERCISES = [
   // Chest
   ["Flat Barbell Bench Press", "Chest"], ["Incline Dumbbell Press", "Chest"],
@@ -498,7 +500,7 @@ export const STORAGE_KEY = "fitlog:v1";
 
 export const loadData = () => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = getItemSync(STORAGE_KEY);
     if (raw) return { ...EMPTY_DATA, ...JSON.parse(raw) };
   } catch (e) {
     console.error("Could not load saved data", e);
