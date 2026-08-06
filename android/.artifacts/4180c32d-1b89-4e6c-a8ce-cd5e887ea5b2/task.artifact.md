@@ -1,4 +1,5 @@
 - [x] Update `AndroidManifest.xml` to remove unnecessary Health Connect permissions
 - [x] Update `src/utils/health.js` to stop requesting and querying restricted data
 - [x] Update `src/screens/MoreScreen.jsx` to stop requesting restricted data
+- [x] Bump version code to 133 for fresh resubmission
 - [x] Verify build and functionality

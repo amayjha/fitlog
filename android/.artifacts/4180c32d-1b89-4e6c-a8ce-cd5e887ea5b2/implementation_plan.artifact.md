@@ -1,42 +1,32 @@
-# Implementation Plan - Resolve Health Connect Excessive Data Access
+# Implementation Plan - Health Connect "Insufficient Information" Resolution
 
-Google has rejected the app because it requests Health Connect permissions that are not deemed "essential" for the app's current feature set. Specifically, Google flagged **Distance, Heart Rate, Sleep, and Steps**.
-
-To resolve this, we will follow the "Minimum Scope" principle by removing these permissions from the Android manifest and updating the application code to stop requesting or using this data.
+Google is requesting a rationale for **StepsCadence/Steps**. This error usually occurs for one of two reasons:
+1. The **Health Apps declaration form** in the Play Console still has "Steps" checked, even though we removed it from the code.
+2. You have decided to keep the Steps feature and need a strong justification to pass Google's "Minimum Scope" review.
 
 ## User Review Required
 
-> [!WARNING]
-> **Functional Changes**: Removing these permissions means the app will no longer display **Steps** or **Distance** in the "More" screen summary or workout logs. This is necessary to comply with Google's policy and get the app approved.
+> [!IMPORTANT]
+> **Keep or Remove?**: In our previous step, we removed the Steps code to comply with Google's "Minimum Scope" policy. If you want to **keep** steps, I need to revert those changes. If you want to **remove** them, you must uncheck the "Steps" box in the Play Console.
 
-## Proposed Changes
+## Proposed Actions
 
-### Android Manifest
+### Option A: Complete Removal (Recommended)
+If you do **not** need steps:
+1. **Uncheck "Steps"** in the Google Play Console under *App content > Health apps*.
+2. **Increase the Version Code**: We will update your `versionCode` to **133** to ensure Google sees this as a fresh, clean submission.
 
-#### [MODIFY] [AndroidManifest.xml](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/app/src/main/AndroidManifest.xml)
-- Use `tools:node="remove"` to explicitly exclude the flagged permissions (Steps, Distance, Heart Rate, Sleep).
-- We will also exclude all other unused health permissions that the `@capgo/capacitor-health` library adds to the manifest by default (e.g., Blood Pressure, Oxygen Saturation, etc.) to ensure we strictly follow the "Minimum Scope" policy.
-- We will only keep: `READ_ACTIVE_CALORIES_BURNED`, `READ_TOTAL_CALORIES_BURNED`, `READ_WEIGHT`, `WRITE_WEIGHT`, and `READ_EXERCISE`.
+### Option B: Keep Steps with Justification
+If you **do** want to keep steps:
+1. **Revert Code Changes**: I will restore the step-counting logic to the UI and Manifest.
+2. **Provide Rationale**: You must use the following text in the Play Console:
+    > "Ironlog provides a holistic view of the user's physical readiness and recovery. Daily step count is used as a primary metric for Non-Exercise Activity Thermogenesis (NEAT), which is essential for strength training athletes to monitor their total daily energy expenditure and recovery status. Displaying daily steps alongside lifting volume helps users understand their energy balance and optimize their muscle recovery and growth."
 
-### JavaScript Code
+## Proposed Code Changes (For Option A - Versioning)
 
-#### [MODIFY] [utils/health.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/utils/health.js)
-- Remove `steps` from `requestHealthPermissions`.
-- Remove `steps` query and display logic from `getDayActivity`.
-- Remove `distanceKm` (totalDistance) extraction from `getRecentWorkouts`.
-
-#### [MODIFY] [MoreScreen.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/screens/MoreScreen.jsx)
-- Update `checkHealthStatus` and `handleHealthConnect` to remove `steps` and `heartRate` from the read/write requests.
-- Update UI to remove Step-related displays if applicable.
+#### [MODIFY] [build.gradle](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/app/build.gradle)
+- Update `versionCode` to `133`.
+- Update `versionName` to `1.0.2`.
 
 ## Verification Plan
-
-### Automated Tests
-- Build the app using `.\gradlew :app:assembleRelease` to ensure the manifest merger succeeds.
-- Inspect the final merged manifest (if possible) to confirm the permissions are gone.
-
-### Manual Verification
-- Deploy to a device.
-- Open the "More" screen and click "Connect" to Health Connect.
-- Verify that the consent screen ONLY asks for Weight, Calories, and Workouts.
-- Verify that the app doesn't crash when attempting to fetch data (since we've updated the code).
+- Run `.\gradlew :app:bundleRelease` to generate a new AAB with the updated version code.
