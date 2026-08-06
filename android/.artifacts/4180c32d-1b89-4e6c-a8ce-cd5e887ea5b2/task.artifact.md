@@ -1,4 +1,5 @@
-- [x] Add `deleteComment` to `src/utils/community.js`
-- [x] Implement delete button and logic in `src/screens/CommunityScreen.jsx`
-- [x] Verify build and functionality
-- [x] Create walkthrough
+- [x] Update `AndroidManifest.xml` to remove ALL flagged Health Connect permissions
+- [x] Increment version in `app/build.gradle` (v134)
+- [x] Verify build and check merged manifest
+- [/] Push to git
+- [ ] Create walkthrough

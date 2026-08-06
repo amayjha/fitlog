@@ -1,37 +1,46 @@
-# Implementation Plan - Delete Comments in Community Section
+# Implementation Plan - Fix Health Connect Permissions Merging
 
-This plan adds the ability for users to delete their own comments in the community section.
+Google is still reporting many unused Health Connect permissions. This is likely because the previous `AndroidManifest.xml` cleanup was incomplete and contained a conflict (trying to both keep and remove `READ_TOTAL_CALORIES_BURNED`).
+
+This plan will exhaustively remove all flagged permissions and ensure the manifest merger correctly outputs only the 5 required permissions.
 
 ## User Review Required
 
-> [!NOTE]
-> This implementation allows users to delete **only their own** comments. It does not (yet) allow post owners to delete comments on their posts, or users to delete their own posts.
+> [!IMPORTANT]
+> **Fresh Submission**: After I apply these changes, you MUST build a new App Bundle and upload it to the Play Store. Google will not see the changes until a new version is uploaded. I will increment the `versionCode` again to ensure it's a fresh submission.
 
 ## Proposed Changes
 
-### [Component: Community Utils]
+### Android Manifest
 
-#### [MODIFY] [community.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/utils/community.js)
-- Add `deleteComment(commentId, userId)` function to handle Supabase deletion.
+#### [MODIFY] [AndroidManifest.xml](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/app/src/main/AndroidManifest.xml)
+- Completely rewrite the Health Connect permissions section.
+- Explicitly list the 5 permissions we WANT to keep:
+    - `READ_ACTIVE_CALORIES_BURNED`
+    - `READ_TOTAL_CALORIES_BURNED`
+    - `READ_WEIGHT`
+    - `WRITE_WEIGHT`
+    - `READ_EXERCISE`
+- Explicitly list ALL other permissions from the `@capgo/capacitor-health` library with `tools:node="remove"`. This includes the ones specifically flagged by Google:
+    - `READ_STEPS`, `WRITE_STEPS`
+    - `READ_DISTANCE`, `WRITE_DISTANCE`
+    - `WRITE_ACTIVE_CALORIES_BURNED`
+    - `READ_HEART_RATE`, `WRITE_HEART_RATE`
+    - `READ_SLEEP`, `WRITE_SLEEP`
+    - `WRITE_TOTAL_CALORIES_BURNED`
+    - Plus all others (Respiratory rate, etc.) to be safe.
 
-### [Component: Community UI]
+### Build Configuration
 
-#### [MODIFY] [CommunityScreen.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/screens/CommunityScreen.jsx)
-- Import `deleteComment` from `utils/community.js`.
-- In `ItemDetail` component:
-    - Add `handleDeleteComment(commentId)` with a confirmation dialog.
-    - Update comment rendering to show a "Delete" button (trash icon or text) next to comments authored by the current `userId`.
+#### [MODIFY] [build.gradle](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/app/build.gradle)
+- Increment `versionCode` to **134**.
+- Increment `versionName` to **1.0.3**.
 
 ## Verification Plan
 
 ### Automated Tests
-- I'll verify the build doesn't break after the changes.
+- Run `.\gradlew :app:assembleRelease` to verify the build.
+- I will attempt to run a command to inspect the **Merged Manifest** to confirm that the unwanted permissions are indeed gone from the final build.
 
 ### Manual Verification
-1. Sign in to a paid community account.
-2. Navigate to a shared item (Template, Goal, or Food Plan).
-3. Post a comment.
-4. Verify that a "Delete" option appears for your comment.
-5. Click "Delete" and confirm.
-6. Verify the comment is removed from the list.
-7. Verify that other users' comments do NOT show a "Delete" option.
+- You will need to upload the generated `.aab` (Version 134) to the Play Console and verify that the "App Content" section no longer flags these permissions.
