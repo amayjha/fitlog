@@ -1,37 +1,42 @@
-# Deploying to Google Play Store
+# Implementation Plan - Resolve Health Connect Excessive Data Access
 
-This plan outlines the steps required to prepare and build your app for release on the Google Play Store. Since this is a Capacitor-based Android project, we will follow standard Android release procedures.
+Google has rejected the app because it requests Health Connect permissions that are not deemed "essential" for the app's current feature set. Specifically, Google flagged **Distance, Heart Rate, Sleep, and Steps**.
+
+To resolve this, we will follow the "Minimum Scope" principle by removing these permissions from the Android manifest and updating the application code to stop requesting or using this data.
 
 ## User Review Required
 
-> [!IMPORTANT]
-> **Google Play Developer Account**: You must have a registered Google Play Developer account (which has a one-time $25 fee) to upload and publish apps.
-> **Keystore Security**: The keystore file (`.jks`) and its passwords are critical. If you lose them, you will NOT be able to update your app in the future. We will store passwords in a `keystore.properties` file which should be kept out of version control.
-
-## Open Questions
-
-1. Do you already have a release keystore, or should we generate a new one?
-2. What is the intended `versionCode` and `versionName` for this first release? (Defaulting to `1` and `1.0` if not specified).
+> [!WARNING]
+> **Functional Changes**: Removing these permissions means the app will no longer display **Steps** or **Distance** in the "More" screen summary or workout logs. This is necessary to comply with Google's policy and get the app approved.
 
 ## Proposed Changes
 
-### Build Configuration
+### Android Manifest
 
-#### [NEW] [keystore.properties](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/keystore.properties)
-Create a properties file to store sensitive signing information.
+#### [MODIFY] [AndroidManifest.xml](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/app/src/main/AndroidManifest.xml)
+- Use `tools:node="remove"` to explicitly exclude the flagged permissions (Steps, Distance, Heart Rate, Sleep).
+- We will also exclude all other unused health permissions that the `@capgo/capacitor-health` library adds to the manifest by default (e.g., Blood Pressure, Oxygen Saturation, etc.) to ensure we strictly follow the "Minimum Scope" policy.
+- We will only keep: `READ_ACTIVE_CALORIES_BURNED`, `READ_TOTAL_CALORIES_BURNED`, `READ_WEIGHT`, `WRITE_WEIGHT`, and `READ_EXERCISE`.
 
-#### [MODIFY] [build.gradle](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/app/build.gradle)
-Update to load `keystore.properties` and configure the `release` build type with signing.
+### JavaScript Code
 
-#### [MODIFY] [.gitignore](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/.gitignore)
-Ensure `keystore.properties` and `*.jks` are ignored to prevent accidental leaks.
+#### [MODIFY] [utils/health.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/utils/health.js)
+- Remove `steps` from `requestHealthPermissions`.
+- Remove `steps` query and display logic from `getDayActivity`.
+- Remove `distanceKm` (totalDistance) extraction from `getRecentWorkouts`.
+
+#### [MODIFY] [MoreScreen.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/screens/MoreScreen.jsx)
+- Update `checkHealthStatus` and `handleHealthConnect` to remove `steps` and `heartRate` from the read/write requests.
+- Update UI to remove Step-related displays if applicable.
 
 ## Verification Plan
 
 ### Automated Tests
-- Run `./gradlew :app:assembleRelease` to verify the release build compiles.
-- Run `./gradlew :app:bundleRelease` to generate the Android App Bundle (`.aab`).
+- Build the app using `.\gradlew :app:assembleRelease` to ensure the manifest merger succeeds.
+- Inspect the final merged manifest (if possible) to confirm the permissions are gone.
 
 ### Manual Verification
-- Inspect the generated `.aab` file in `app/build/outputs/bundle/release/`.
-- The user will need to manually upload this file to the [Google Play Console](https://play.google.com/console/).
+- Deploy to a device.
+- Open the "More" screen and click "Connect" to Health Connect.
+- Verify that the consent screen ONLY asks for Weight, Calories, and Workouts.
+- Verify that the app doesn't crash when attempting to fetch data (since we've updated the code).

@@ -1,39 +1,38 @@
-# Deployment Preparation Walkthrough
+# Walkthrough - Health Connect Permission Optimization
 
-I have updated your project to support signed release builds. This configuration follows best practices by keeping sensitive signing information out of version control while making the build process reproducible.
+I have completed the optimization of Health Connect permissions to comply with Google Play's "Minimum Scope" requirements. The app now only requests permissions that are essential for its core strength training features.
 
 ## Changes Made
 
-### 1. Security Configuration
-- **[.gitignore](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/.gitignore)**: Updated to ensure that `*.jks`, `*.keystore`, and `keystore.properties` are never committed to Git.
-- **[keystore.properties](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/keystore.properties)**: Created a template file to store your signing passwords and alias.
+### 1. Android Manifest Optimization
+- **[AndroidManifest.xml](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/app/src/main/AndroidManifest.xml)**:
+    - Added `xmlns:tools="http://schemas.android.com/tools"` to enable manifest merger tools.
+    - Used `tools:node="remove"` to explicitly exclude all unnecessary Health Connect permissions that were being pulled in by the `@capgo/capacitor-health` library.
+    - **Permissions Removed**: Steps, Distance, Heart Rate, Sleep, and over 20 other medical data types.
+    - **Permissions Retained**: Active Calories Burned, Total Calories Burned, Weight (Read/Write), and Exercises (Workouts).
 
-### 2. Build Logic
-- **[app/build.gradle](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/app/build.gradle)**:
-    - Added logic to load signing configuration from `keystore.properties`.
-    - Defined a `release` signing configuration.
-    - Updated the `release` build type to use this signing configuration.
+### 2. JavaScript Logic Cleanup
+- **[utils/health.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/utils/health.js)**:
+    - Updated `requestHealthPermissions` to stop requesting "steps".
+    - Updated `getDayActivity` to remove step-count aggregation.
+    - Updated `getRecentWorkouts` to remove distance tracking from imported activities.
+- **[HomeScreen.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/screens/HomeScreen.jsx)**:
+    - Updated the "Activity" strip to remove the step counter display.
+- **[MoreScreen.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/screens/MoreScreen.jsx)**:
+    - Updated the Health Connect connection logic to remove `steps` and `heartRate` from authorization requests.
 
-## Next Steps
+## Verification Results
 
-To complete the release process, follow these instructions:
+### Build Verification
+- Successfully ran `:app:assembleDebug`. The manifest merger correctly processed the `tools:node="remove"` instructions, ensuring that the final APK/AAB will not contain the flagged permissions.
 
-### Step 1: Generate your Keystore
-If you don't have a keystore yet, you can generate one using the following command in your terminal (run this from the `android/` directory):
+### Next Steps for Resubmission
+1.  **Re-build Release AAB**: Run `.\gradlew :app:bundleRelease` in your terminal.
+2.  **Update Play Console Declaration**:
+    - Go to **App content** > **Health apps**.
+    - Remove the justifications for **Steps**, **Distance**, **Heart Rate**, and **Sleep**.
+    - Ensure only **Activity and fitness** (Workouts/Calories) and **Nutrition and weight management** (Weight) are declared.
+3.  **Submit for Review**: Upload the new AAB and submit.
 
-```powershell
-keytool -genkey -v -keystore release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias release-key
-```
-
-### Step 2: Configure Passwords
-Open **[keystore.properties](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/keystore.properties)** and replace the placeholders with the passwords you chose in Step 1.
-
-### Step 3: Build the App Bundle
-Once the keystore is ready and properties are filled, run this command to generate the `.aab` file:
-
-```powershell
-./gradlew :app:bundleRelease
-```
-
-The final bundle will be located at:
-`app/build/outputs/bundle/release/app-release.aab`
+> [!IMPORTANT]
+> Since we've removed these features from the UI as well, the Google Play reviewer should now see that your permission requests perfectly match your app's functionality, fulfilling the "Minimum Scope" requirement.

@@ -180,19 +180,12 @@ export default function HomeScreen({
       </div>
 
       {/* Health activity strip */}
-      {healthActivity && (healthActivity.steps !== null || healthActivity.calories !== null) && (
+      {healthActivity && healthActivity.calories !== null && (
         <div className="panel" style={{ display: "flex", gap: 20, alignItems: "center", padding: "10px 16px" }}>
           <span style={{ color: T.faint, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", flexShrink: 0 }}>Activity</span>
-          {healthActivity.steps !== null && (
-            <span style={{ fontSize: 13, color: T.label }}>
-              👣 <strong style={{ color: T.text }}>{Math.round(healthActivity.steps).toLocaleString()}</strong> steps
-            </span>
-          )}
-          {healthActivity.calories !== null && (
-            <span style={{ fontSize: 13, color: T.label }}>
-              🔥 <strong style={{ color: T.text }}>{Math.round(healthActivity.calories).toLocaleString()}</strong> kcal
-            </span>
-          )}
+          <span style={{ fontSize: 13, color: T.label }}>
+            🔥 <strong style={{ color: T.text }}>{Math.round(healthActivity.calories).toLocaleString()}</strong> kcal
+          </span>
         </div>
       )}
 

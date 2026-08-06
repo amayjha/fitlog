@@ -205,8 +205,8 @@ export default function MoreScreen({
         return;
       }
       const auth = await Health.checkAuthorization({
-        read: ["steps", "weight", "heartRate"],
-        write: ["steps", "weight"]
+        read: ["weight"],
+        write: ["weight"]
       });
       // Simplified: if any read permission is granted, we consider it "connected" for now
       // Real implementation would check all required ones.
@@ -225,8 +225,8 @@ export default function MoreScreen({
     try {
       setHealthStatus("checking");
       await Health.requestAuthorization({
-        read: ["steps", "weight", "heartRate"],
-        write: ["steps", "weight"]
+        read: ["weight"],
+        write: ["weight"]
       });
       await checkHealthStatus();
     } catch (err) {

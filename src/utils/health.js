@@ -18,7 +18,7 @@ export function wasHealthPermitted() {
 
 export async function requestHealthPermissions() {
   await Health.requestAuthorization({
-    read: ["steps", "calories", "workouts"],
+    read: ["calories", "workouts"],
     write: [],
   });
   await setItem(LS_PERMITTED, "1");
@@ -30,14 +30,7 @@ export async function getDayActivity(date) {
   const end = new Date(date);
   end.setHours(23, 59, 59, 999);
   try {
-    const [stepsRes, calsRes] = await Promise.all([
-      Health.queryAggregated({
-        dataType: "steps",
-        startDate: start.toISOString(),
-        endDate: end.toISOString(),
-        bucket: "day",
-        aggregation: "sum",
-      }),
+    const [calsRes] = await Promise.all([
       Health.queryAggregated({
         dataType: "calories",
         startDate: start.toISOString(),
@@ -46,9 +39,8 @@ export async function getDayActivity(date) {
         aggregation: "sum",
       }),
     ]);
-    const steps = stepsRes.samples?.[0]?.value ?? null;
     const calories = calsRes.samples?.[0]?.value ?? null;
-    return steps === null && calories === null ? null : { steps, calories };
+    return calories === null ? null : { calories };
   } catch {
     return null;
   }
@@ -180,9 +172,6 @@ export async function getRecentWorkouts(days = 30) {
       const group = WORKOUT_GROUP[name] || "Cardio";
       const durationMins = Math.max(1, Math.round((w.duration || 0) / 60));
       const calories = w.totalEnergyBurned ? Math.round(w.totalEnergyBurned) : null;
-      const distanceKm = w.totalDistance
-        ? Math.round(w.totalDistance / 100) / 10
-        : null;
-      return { name, group, dateKey: toDateKey(w.startDate), durationMins, calories, distanceKm };
+      return { name, group, dateKey: toDateKey(w.startDate), durationMins, calories };
     });
 }

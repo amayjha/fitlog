@@ -1,5 +1,4 @@
-- [x] Update `.gitignore` to exclude signing files
-- [x] Create `keystore.properties` template
-- [x] Modify `app/build.gradle` to load signing config
-- [x] Generate release keystore (User interaction required for passwords)
-- [x] Build Release Bundle (`.aab`)
+- [x] Update `AndroidManifest.xml` to remove unnecessary Health Connect permissions
+- [x] Update `src/utils/health.js` to stop requesting and querying restricted data
+- [x] Update `src/screens/MoreScreen.jsx` to stop requesting restricted data
+- [x] Verify build and functionality
