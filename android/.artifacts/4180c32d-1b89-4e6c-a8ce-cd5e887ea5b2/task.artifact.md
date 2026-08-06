@@ -1,5 +1,5 @@
 - [x] Update `AndroidManifest.xml` to remove ALL flagged Health Connect permissions
 - [x] Increment version in `app/build.gradle` (v134)
 - [x] Verify build and check merged manifest
-- [/] Push to git
-- [ ] Create walkthrough
+- [x] Push to git
+- [x] Create walkthrough
