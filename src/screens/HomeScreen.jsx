@@ -37,29 +37,25 @@ export default function HomeScreen({
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [noteOpen, setNoteOpen] = useState(false);
 
-  const [rangeFrom, setRangeFrom] = useState(dkey(new Date(Date.now() - 29 * 86400000)));
-  const [rangeTo, setRangeTo] = useState(dkey(new Date()));
-  const [rangePreset, setRangePreset] = useState(1);
+  const [rangeFrom, setRangeFrom] = useState(null);
+  const [rangeTo, setRangeTo] = useState(null);
 
-  const applyRangePreset = (idx, days) => {
-    setRangePreset(idx);
-    if (days === null) {
-      const keys = Object.keys(data.workouts).filter((k) => data.workouts[k].length).sort();
-      setRangeFrom(keys[0] || dkey(new Date()));
-    } else {
-      const d = new Date();
-      d.setDate(d.getDate() - (days - 1));
-      setRangeFrom(dkey(d));
-    }
+  useEffect(() => {
+    const keys = Object.keys(data.workouts).filter((k) => data.workouts[k].length).sort();
+    setRangeFrom(keys[0] || dkey(new Date()));
     setRangeTo(dkey(new Date()));
-  };
+  }, [data.workouts]);
 
   const rangeWorkoutCount = useMemo(
-    () => Object.keys(data.workouts).filter((k) => k >= rangeFrom && k <= rangeTo && data.workouts[k].length).length,
+    () => {
+      if (!rangeFrom || !rangeTo) return 0;
+      return Object.keys(data.workouts).filter((k) => k >= rangeFrom && k <= rangeTo && data.workouts[k].length).length;
+    },
     [data.workouts, rangeFrom, rangeTo]
   );
 
   const rangeGroups = useMemo(() => {
+    if (!rangeFrom || !rangeTo) return [];
     const map = {};
     for (const [k, entries] of Object.entries(data.workouts)) {
       if (k < rangeFrom || k > rangeTo) continue;
@@ -296,7 +292,7 @@ export default function HomeScreen({
         )}
       </div>
 
-      {/* Workout Summary — date picker + count, both leading to the Summary screen */}
+      {/* Workout Summary — leads to the Summary screen */}
       <div className="panel" data-tour="summary-card" style={{ display: "grid", gap: 10 }}>
         <button
           className="row"
@@ -306,44 +302,10 @@ export default function HomeScreen({
           <span style={{ fontSize: 20 }}>📊</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700 }}>Workout Summary</div>
-            <div style={{ color: T.label, fontSize: 13, marginTop: 1 }}>Review progress over a date range</div>
+            <div style={{ color: T.label, fontSize: 13, marginTop: 1 }}>Review your total progress</div>
           </div>
           <span style={{ color: T.faint }}>›</span>
         </button>
-
-        <div style={{ height: 1, background: T.sep }} />
-
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {RANGE_PRESETS.map((p, i) => (
-            <button
-              key={p.label}
-              className={`chip${rangePreset === i ? " active" : ""}`}
-              onClick={() => applyRangePreset(i, p.days)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <input
-            type="date"
-            className="input"
-            style={{ padding: "10px 12px", fontSize: 14 }}
-            value={rangeFrom}
-            max={rangeTo}
-            onChange={(e) => { setRangeFrom(e.target.value); setRangePreset(null); }}
-          />
-          <input
-            type="date"
-            className="input"
-            style={{ padding: "10px 12px", fontSize: 14 }}
-            value={rangeTo}
-            min={rangeFrom}
-            max={dkey(new Date())}
-            onChange={(e) => { setRangeTo(e.target.value); setRangePreset(null); }}
-          />
-        </div>
 
         {rangeGroups.length > 0 && (
           <>
