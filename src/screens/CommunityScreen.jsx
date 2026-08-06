@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { T, GROUP_COLORS } from "../theme.js";
 import {
-  COMMUNITY_TABS, fetchFeed, fetchComments, addComment,
+  COMMUNITY_TABS, fetchFeed, fetchComments, addComment, deleteComment,
   fetchReactions, toggleReaction, fetchReactionCounts, REACTION_EMOJIS, MEAL_LABELS,
   shareTemplate, shareGoal, shareFoodPlan,
 } from "../utils/community.js";
@@ -325,6 +325,16 @@ function ItemDetail({ tabId, item, userId, onBack }) {
     }
   };
 
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm("Delete your comment?")) return;
+    try {
+      await deleteComment(commentId, userId);
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch (err) {
+      alert("Could not delete comment");
+    }
+  };
+
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <button className="ghostbtn" style={{ justifySelf: "start", padding: "4px 0" }} onClick={onBack}>‹ Back to feed</button>
@@ -397,9 +407,20 @@ function ItemDetail({ tabId, item, userId, onBack }) {
         ) : (
           <div style={{ display: "grid", gap: 8 }}>
             {comments.map((c) => (
-              <div key={c.id} className="panel" style={{ padding: "10px 12px" }}>
-                <div style={{ fontWeight: 600, fontSize: 13 }}>{c.profiles?.username || "someone"}</div>
-                <div style={{ color: T.label, fontSize: 14, marginTop: 2 }}>{c.body}</div>
+              <div key={c.id} className="panel" style={{ padding: "10px 12px", display: "flex", gap: 8, alignItems: "flex-start" }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{c.profiles?.username || "someone"}</div>
+                  <div style={{ color: T.label, fontSize: 14, marginTop: 2 }}>{c.body}</div>
+                </div>
+                {c.user_id === userId && (
+                  <button
+                    className="ghostbtn"
+                    style={{ fontSize: 16, padding: "4px", minHeight: 0, opacity: 0.6 }}
+                    onClick={() => handleDeleteComment(c.id)}
+                  >
+                    🗑️
+                  </button>
+                )}
               </div>
             ))}
           </div>

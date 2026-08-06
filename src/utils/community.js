@@ -36,6 +36,15 @@ export const addComment = async (userId, itemType, itemId, body) => {
   if (error) throw error;
 };
 
+export const deleteComment = async (commentId, userId) => {
+  const { error } = await supabase
+    .from("comments")
+    .delete()
+    .eq("id", commentId)
+    .eq("user_id", userId);
+  if (error) throw error;
+};
+
 // ── Reactions ──
 export const REACTION_EMOJIS = ["👍", "🔥", "💪", "❤️"];
 

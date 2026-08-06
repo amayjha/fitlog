@@ -1,32 +1,37 @@
-# Implementation Plan - Health Connect "Insufficient Information" Resolution
+# Implementation Plan - Delete Comments in Community Section
 
-Google is requesting a rationale for **StepsCadence/Steps**. This error usually occurs for one of two reasons:
-1. The **Health Apps declaration form** in the Play Console still has "Steps" checked, even though we removed it from the code.
-2. You have decided to keep the Steps feature and need a strong justification to pass Google's "Minimum Scope" review.
+This plan adds the ability for users to delete their own comments in the community section.
 
 ## User Review Required
 
-> [!IMPORTANT]
-> **Keep or Remove?**: In our previous step, we removed the Steps code to comply with Google's "Minimum Scope" policy. If you want to **keep** steps, I need to revert those changes. If you want to **remove** them, you must uncheck the "Steps" box in the Play Console.
+> [!NOTE]
+> This implementation allows users to delete **only their own** comments. It does not (yet) allow post owners to delete comments on their posts, or users to delete their own posts.
 
-## Proposed Actions
+## Proposed Changes
 
-### Option A: Complete Removal (Recommended)
-If you do **not** need steps:
-1. **Uncheck "Steps"** in the Google Play Console under *App content > Health apps*.
-2. **Increase the Version Code**: We will update your `versionCode` to **133** to ensure Google sees this as a fresh, clean submission.
+### [Component: Community Utils]
 
-### Option B: Keep Steps with Justification
-If you **do** want to keep steps:
-1. **Revert Code Changes**: I will restore the step-counting logic to the UI and Manifest.
-2. **Provide Rationale**: You must use the following text in the Play Console:
-    > "Ironlog provides a holistic view of the user's physical readiness and recovery. Daily step count is used as a primary metric for Non-Exercise Activity Thermogenesis (NEAT), which is essential for strength training athletes to monitor their total daily energy expenditure and recovery status. Displaying daily steps alongside lifting volume helps users understand their energy balance and optimize their muscle recovery and growth."
+#### [MODIFY] [community.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/utils/community.js)
+- Add `deleteComment(commentId, userId)` function to handle Supabase deletion.
 
-## Proposed Code Changes (For Option A - Versioning)
+### [Component: Community UI]
 
-#### [MODIFY] [build.gradle](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/app/build.gradle)
-- Update `versionCode` to `133`.
-- Update `versionName` to `1.0.2`.
+#### [MODIFY] [CommunityScreen.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/screens/CommunityScreen.jsx)
+- Import `deleteComment` from `utils/community.js`.
+- In `ItemDetail` component:
+    - Add `handleDeleteComment(commentId)` with a confirmation dialog.
+    - Update comment rendering to show a "Delete" button (trash icon or text) next to comments authored by the current `userId`.
 
 ## Verification Plan
-- Run `.\gradlew :app:bundleRelease` to generate a new AAB with the updated version code.
+
+### Automated Tests
+- I'll verify the build doesn't break after the changes.
+
+### Manual Verification
+1. Sign in to a paid community account.
+2. Navigate to a shared item (Template, Goal, or Food Plan).
+3. Post a comment.
+4. Verify that a "Delete" option appears for your comment.
+5. Click "Delete" and confirm.
+6. Verify the comment is removed from the list.
+7. Verify that other users' comments do NOT show a "Delete" option.

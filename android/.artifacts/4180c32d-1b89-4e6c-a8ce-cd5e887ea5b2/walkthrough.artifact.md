@@ -1,38 +1,28 @@
-# Walkthrough - Health Connect Permission Optimization
+# Walkthrough - Delete Comments in Community Section
 
-I have completed the optimization of Health Connect permissions to comply with Google Play's "Minimum Scope" requirements. The app now only requests permissions that are essential for its core strength training features.
+I have implemented the ability for users to delete their own comments within the community section of the app.
 
 ## Changes Made
 
-### 1. Android Manifest Optimization
-- **[AndroidManifest.xml](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/app/src/main/AndroidManifest.xml)**:
-    - Added `xmlns:tools="http://schemas.android.com/tools"` to enable manifest merger tools.
-    - Used `tools:node="remove"` to explicitly exclude all unnecessary Health Connect permissions that were being pulled in by the `@capgo/capacitor-health` library.
-    - **Permissions Removed**: Steps, Distance, Heart Rate, Sleep, and over 20 other medical data types.
-    - **Permissions Retained**: Active Calories Burned, Total Calories Burned, Weight (Read/Write), and Exercises (Workouts).
+### 1. Backend Utility
+- **[utils/community.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/utils/community.js)**:
+    - Added a `deleteComment` function that interacts with the Supabase `comments` table. It ensures that a comment can only be deleted if the `user_id` matches the current user.
 
-### 2. JavaScript Logic Cleanup
-- **[utils/health.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/utils/health.js)**:
-    - Updated `requestHealthPermissions` to stop requesting "steps".
-    - Updated `getDayActivity` to remove step-count aggregation.
-    - Updated `getRecentWorkouts` to remove distance tracking from imported activities.
-- **[HomeScreen.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/screens/HomeScreen.jsx)**:
-    - Updated the "Activity" strip to remove the step counter display.
-- **[MoreScreen.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/screens/MoreScreen.jsx)**:
-    - Updated the Health Connect connection logic to remove `steps` and `heartRate` from authorization requests.
+### 2. Community UI
+- **[CommunityScreen.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/screens/CommunityScreen.jsx)**:
+    - Integrated the `deleteComment` utility.
+    - Added a `handleDeleteComment` function to the `ItemDetail` view, which includes a confirmation prompt before deletion.
+    - Updated the comment list to display a bin icon (🗑️) next to comments authored by the signed-in user.
 
-## Verification Results
+## Verification
 
-### Build Verification
-- Successfully ran `:app:assembleDebug`. The manifest merger correctly processed the `tools:node="remove"` instructions, ensuring that the final APK/AAB will not contain the flagged permissions.
+### Automated Tests
+- Verified the Android build succeeds with `gradle_build :app:assembleDebug`.
 
-### Next Steps for Resubmission
-1.  **Re-build Release AAB**: Run `.\gradlew :app:bundleRelease` in your terminal.
-2.  **Update Play Console Declaration**:
-    - Go to **App content** > **Health apps**.
-    - Remove the justifications for **Steps**, **Distance**, **Heart Rate**, and **Sleep**.
-    - Ensure only **Activity and fitness** (Workouts/Calories) and **Nutrition and weight management** (Weight) are declared.
-3.  **Submit for Review**: Upload the new AAB and submit.
-
-> [!IMPORTANT]
-> Since we've removed these features from the UI as well, the Google Play reviewer should now see that your permission requests perfectly match your app's functionality, fulfilling the "Minimum Scope" requirement.
+### Manual Steps
+1. Navigate to the **Community** section.
+2. Open any shared template, food plan, or goal.
+3. Post a comment.
+4. You should now see a **Delete** button next to your comment.
+5. Clicking **Delete** will prompt for confirmation and then remove the comment from the view and the database.
+6. Verify that you cannot see the "Delete" button on comments posted by other users.
