@@ -1,44 +1,38 @@
-# Walkthrough - Resolve Blank White Screen on Launch
+# Walkthrough - Automated AAB Building with GitHub Actions
 
-I have applied several stability fixes to ensure the app loads correctly and displays the UI instead of a blank white screen.
+I have configured a GitHub Actions workflow that automatically builds a signed Android App Bundle (`.aab`) whenever you push changes to your `master` branch.
 
 ## Changes Made
 
-### 1. Robust Asset Loading
-- **[vite.config.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/vite.config.js)**:
-    - Set `base: "./"`. This ensures all generated script and style tags in `index.html` use relative paths, making them compatible with how Android's WebView handles local files.
+### 1. CI/CD Workflow
+- **[.github/workflows/android-build.yml](file:///C:/Users/amayj/ironlog/ironlog/new_app/.github/workflows/android-build.yml)**:
+    - Updated to use **Node 22** and **Java 21** for compatibility with the latest Capacitor/Android standards.
+    - Added automated `npm run build` and `npx cap sync android` steps to ensure the AAB always contains your latest web code.
+    - Implemented auto-incrementing `versionCode` (using `run_number + 200`) to ensure every build is unique and Play Store-ready.
+    - Integrated secure signing using GitHub Secrets.
 
-### 2. Error Resilience
-- **[supabaseClient.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/utils/supabaseClient.js)**:
-    - Added guards to prevent the app from crashing if Supabase environment variables are missing. It now logs a warning and exports a mock client that handles calls without throwing exceptions.
-- **[main.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/main.jsx)**:
-    - Added error handling to the storage hydration process. Even if storage fails to load, the app will now attempt to render the UI.
+## Setup Instructions
 
-### 3. UI Synchronization
-- **[App.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/App.jsx)**:
-    - Added a small delay (100ms) before hiding the splash screen. This allows the React app to finish its first paint, preventing the "white flash" that occurs when the splash screen disappears before the content is ready.
+To make this build successful, you **must** add the following secrets to your GitHub repository (**Settings > Secrets and variables > Actions**):
 
-### 4. Versioning
-- **[build.gradle](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/app/build.gradle)**:
-    - Bumped to `versionCode 136` and `versionName 1.0.5`.
+### 1. `KEYSTORE_BASE64`
+Run this command in your local PowerShell to get the base64 string of your keystore:
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes('android/release-key.jks'))
+```
+Copy the long string output and paste it as the value for this secret.
 
-## Next Steps for a Working Build
+### 2. `KEYSTORE_PASSWORD`
+The password you chose for your `release-key.jks` file.
 
-To ensure these fixes are included in your App Bundle, follow this **EXACT** sequence:
+### 3. `KEY_ALIAS`
+Use the value: `release-key`
 
-1.  **Open Terminal** in Android Studio.
-2.  **Build the Web Assets**:
-    ```powershell
-    npm run build
-    ```
-3.  **Sync with Android**:
-    ```powershell
-    npx cap sync android
-    ```
-4.  **Build the Bundle**:
-    - Go to **Build > Build Bundle(s) / APK(s) > Build Bundle(s)**.
-5.  **Upload to Play Console**:
-    - Upload the new Version 136 bundle to your testing track.
+### 4. `KEY_PASSWORD`
+The password for the key alias (usually the same as the keystore password).
 
-> [!IMPORTANT]
-> Step 2 and 3 are critical. If you don't run `npm run build` and `npx cap sync`, your Android project will keep using the old, broken web files.
+## How to Get Your Build
+1. Push any code change to the `master` branch.
+2. Go to your repository on GitHub and click the **Actions** tab.
+3. Select the **Android Release Build** workflow.
+4. Once finished, look at the **Artifacts** section at the bottom of the page to download your `.aab` file.

@@ -1,31 +1,28 @@
-# Implementation Plan - Automate AAB Build with GitHub Actions
+# Implementation Plan - Upgrade GitHub Actions to Resolve Node.js 20 Deprecation
 
-This plan sets up a reliable GitHub Actions workflow to build your Android App Bundle (`.aab`) automatically whenever you push to the `master` branch.
+The current GitHub Actions workflow uses versions of standard actions (`checkout`, `setup-node`, `setup-java`, `upload-artifact`) that target Node.js 20, which is being deprecated on GitHub Runners. This plan upgrades these actions to their latest major versions (as of August 2026) to ensure they run on the modern Node.js 24/26 runtimes and eliminate deprecation warnings.
 
 ## User Review Required
 
-> [!IMPORTANT]
-> **GitHub Secrets**: For this to work, you MUST add the following secrets to your GitHub repository (Settings > Secrets and variables > Actions):
-> 1. `KEYSTORE_BASE64`: Run `[Convert]::ToBase64String([IO.File]::ReadAllBytes('android/release-key.jks'))` in PowerShell and paste the output.
-> 2. `KEYSTORE_PASSWORD`: Your keystore password.
-> 3. `KEY_ALIAS`: Use `release-key`.
-> 4. `KEY_PASSWORD`: Your key password.
+> [!NOTE]
+> This change only affects the **CI/CD build process** on GitHub. It does not change how your app runs on Android devices or local development.
 
 ## Proposed Changes
 
 ### [Component: CI/CD Workflow]
 
 #### [MODIFY] [android-build.yml](file:///C:/Users/amayj/ironlog/ironlog/new_app/.github/workflows/android-build.yml)
-- Update the workflow to handle the current project structure and versioning correctly.
-- Ensure it runs `npm run build` and `npx cap sync android`.
-- Use GitHub's `run_number` to automatically increment the `versionCode` so every build is unique and uploadable.
-- Remove the manual `npm uninstall @capgo/capacitor-health` step, as we now handle this via the manifest merger.
+- Upgrade `actions/checkout@v4` to **`@v7`**.
+- Upgrade `actions/setup-node@v4` to **`@v7`**.
+- Upgrade `actions/setup-java@v4` to **`@v5`**.
+- Upgrade `actions/upload-artifact@v4` to **`@v7`**.
+- (Optional) Update `node-version` from `22` to **`26`** to use the latest LTS/Stable Node version in the build environment.
 
 ## Verification Plan
 
 ### Automated Tests
-- Once pushed, you can view the progress in the **Actions** tab of your GitHub repository.
-- A successful run will produce a downloadable `.aab` file as an artifact.
+- Once pushed to the `master` branch, the workflow will trigger automatically.
+- I will check the GitHub Actions logs (if the user provides access or feedback) to confirm the Node.js 20 deprecation warnings are gone.
 
 ### Manual Verification
-- Download the resulting artifact from GitHub Actions and verify it can be uploaded to the Play Console.
+- Verify that the build still completes successfully and produces a valid `.aab` artifact.
