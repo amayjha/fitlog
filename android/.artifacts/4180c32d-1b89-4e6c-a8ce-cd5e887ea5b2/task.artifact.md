@@ -1,5 +1,8 @@
-- [x] Update `AndroidManifest.xml` to remove ALL flagged Health Connect permissions
-- [x] Increment version in `app/build.gradle` (v134)
-- [x] Verify build and check merged manifest
-- [x] Push to git
-- [x] Create walkthrough
+- [ ] Strip all Health Connect permissions from `AndroidManifest.xml`
+- [ ] Disable health logic in `src/utils/health.js`
+- [ ] Remove health UI from `src/screens/HomeScreen.jsx`
+- [ ] Remove health settings from `src/screens/MoreScreen.jsx`
+- [ ] Increment version in `app/build.gradle` (v135)
+- [ ] Verify build and check merged manifest
+- [ ] Push to git
+- [ ] Create walkthrough

@@ -621,28 +621,7 @@ export default function MoreScreen({
 
         <div style={{ height: 1, background: T.sep }} />
 
-        {/* Google Health Connect */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600 }}>Google Health Connect</div>
-            <div style={{ color: T.label, fontSize: 13, marginTop: 2 }}>
-              Sync your steps, weight, and activities with Android's health system
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-            {healthStatus === "unavailable" ? (
-              <div style={{ color: T.faint, fontSize: 13, padding: "6px 0" }}>Not available</div>
-            ) : (
-              <button
-                className={`chip${healthStatus === "connected" ? " active" : ""}`}
-                disabled={healthStatus === "checking"}
-                onClick={handleHealthConnect}
-              >
-                {healthStatus === "checking" ? "Checking…" : healthStatus === "connected" ? "Connected" : "Connect"}
-              </button>
-            )}
-          </div>
-        </div>
+        {/* Google Health Connect (DISABLED) */}
 
         <div style={{ height: 1, background: T.sep }} />
 

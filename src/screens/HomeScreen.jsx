@@ -175,15 +175,7 @@ export default function HomeScreen({
         <button className="navbtn" style={{ height: 48, borderRadius: 10 }} onClick={() => shift(1)}>›</button>
       </div>
 
-      {/* Health activity strip */}
-      {healthActivity && healthActivity.calories !== null && (
-        <div className="panel" style={{ display: "flex", gap: 20, alignItems: "center", padding: "10px 16px" }}>
-          <span style={{ color: T.faint, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", flexShrink: 0 }}>Activity</span>
-          <span style={{ fontSize: 13, color: T.label }}>
-            🔥 <strong style={{ color: T.text }}>{Math.round(healthActivity.calories).toLocaleString()}</strong> kcal
-          </span>
-        </div>
-      )}
+      {/* Health activity strip (DISABLED) */}
 
       {/* Workout content */}
       <div className="panel" style={{ display: "grid", gap: 10 }}>
