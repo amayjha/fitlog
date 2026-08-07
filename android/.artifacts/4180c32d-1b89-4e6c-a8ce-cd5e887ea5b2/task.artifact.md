@@ -1,4 +1,4 @@
-- [ ] Increment `versionCode` to 300 in `app/build.gradle`
-- [ ] Update `android-build.yml` to use 300+ versioning
-- [ ] Push changes to git
+- [x] Increment `versionCode` to 1000 in `app/build.gradle`
+- [x] Update `android-build.yml` to use 1000+ versioning
+- [/] Push changes to git
 - [ ] Create walkthrough
