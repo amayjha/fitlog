@@ -1,3 +1,3 @@
 - [x] Upgrade GitHub Actions in `android-build.yml` to latest versions
-- [/] Push changes to git
-- [ ] Create walkthrough
+- [x] Push changes to git
+- [x] Create walkthrough

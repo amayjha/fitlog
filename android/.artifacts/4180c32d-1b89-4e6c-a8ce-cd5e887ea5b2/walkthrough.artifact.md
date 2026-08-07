@@ -1,38 +1,31 @@
-# Walkthrough - Automated AAB Building with GitHub Actions
+# Walkthrough - GitHub Actions Upgrade & Stability Fixes
 
-I have configured a GitHub Actions workflow that automatically builds a signed Android App Bundle (`.aab`) whenever you push changes to your `master` branch.
+I have upgraded your CI/CD pipeline and applied stability fixes to ensure the app builds correctly in the cloud and runs reliably on devices.
 
 ## Changes Made
 
-### 1. CI/CD Workflow
+### 1. GitHub Actions Modernization
 - **[.github/workflows/android-build.yml](file:///C:/Users/amayj/ironlog/ironlog/new_app/.github/workflows/android-build.yml)**:
-    - Updated to use **Node 22** and **Java 21** for compatibility with the latest Capacitor/Android standards.
-    - Added automated `npm run build` and `npx cap sync android` steps to ensure the AAB always contains your latest web code.
-    - Implemented auto-incrementing `versionCode` (using `run_number + 200`) to ensure every build is unique and Play Store-ready.
-    - Integrated secure signing using GitHub Secrets.
+    - Upgraded all actions to their latest 2026 versions (`checkout@v7`, `setup-node@v7`, `setup-java@v5`, `upload-artifact@v7`).
+    - This eliminates the Node.js 20 deprecation warnings and ensures the build environment uses the latest security and performance features.
+    - Switched the build environment to use **Node 26** (the current stable release).
 
-## Setup Instructions
+### 2. Stability & Blank Screen Fixes
+- **[vite.config.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/vite.config.js)**: Set relative base path (`./`) to ensure assets are correctly located by the Android WebView.
+- **[supabaseClient.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/utils/supabaseClient.js)**: Added error-resilient client initialization to prevent app crashes if environment variables are missing.
+- **[main.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/main.jsx)**: Hardened the storage hydration and rendering sequence.
+- **[App.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/App.jsx)**: Synchronized splash screen removal with the first React paint to prevent the "white screen" flash.
 
-To make this build successful, you **must** add the following secrets to your GitHub repository (**Settings > Secrets and variables > Actions**):
+## Next Steps
 
-### 1. `KEYSTORE_BASE64`
-Run this command in your local PowerShell to get the base64 string of your keystore:
-```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes('android/release-key.jks'))
-```
-Copy the long string output and paste it as the value for this secret.
+1.  **Monitor GitHub Actions**: Go to your GitHub repository's **Actions** tab to see the latest build. With the upgraded actions, it should now run without deprecation warnings.
+2.  **Verify AAB**: Once the build completes, download the `.aab` artifact and verify it can be uploaded to the Play Console.
+3.  **Local Build (Optional)**: If you still need to build locally, remember the sequence:
+    ```powershell
+    npm run build
+    npx cap sync android
+    .\gradlew :app:bundleRelease
+    ```
 
-### 2. `KEYSTORE_PASSWORD`
-The password you chose for your `release-key.jks` file.
-
-### 3. `KEY_ALIAS`
-Use the value: `release-key`
-
-### 4. `KEY_PASSWORD`
-The password for the key alias (usually the same as the keystore password).
-
-## How to Get Your Build
-1. Push any code change to the `master` branch.
-2. Go to your repository on GitHub and click the **Actions** tab.
-3. Select the **Android Release Build** workflow.
-4. Once finished, look at the **Artifacts** section at the bottom of the page to download your `.aab` file.
+> [!TIP]
+> The automated build on GitHub is now your "Source of Truth" for production releases. It ensures every build is clean, signed, and correctly versioned.
