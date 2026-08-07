@@ -1,3 +1,4 @@
-- [x] Upgrade GitHub Actions in `android-build.yml` to latest versions
-- [x] Push changes to git
-- [x] Create walkthrough
+- [ ] Increment `versionCode` to 300 in `app/build.gradle`
+- [ ] Update `android-build.yml` to use 300+ versioning
+- [ ] Push changes to git
+- [ ] Create walkthrough
