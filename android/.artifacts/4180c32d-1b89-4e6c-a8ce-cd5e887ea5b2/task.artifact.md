@@ -1,7 +1,3 @@
-- [x] Set `base: "./"` in `vite.config.js`
-- [x] Update `src/utils/supabaseClient.js` with error handling
-- [x] Add robust initialization to `src/main.jsx`
-- [x] Delay `hideSplashScreen()` in `src/App.jsx`
-- [x] Bump version to 136 in `app/build.gradle`
-- [/] Push changes to git
+- [ ] Update `.github/workflows/android-build.yml`
+- [ ] Push changes to GitHub
 - [ ] Create walkthrough

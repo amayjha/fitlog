@@ -1,41 +1,44 @@
-# Walkthrough - Complete Removal of Health Connect
+# Walkthrough - Resolve Blank White Screen on Launch
 
-I have completely removed all Health Connect functionality and permissions from the app to resolve the policy violations and ensure your app gets approved by Google Play.
+I have applied several stability fixes to ensure the app loads correctly and displays the UI instead of a blank white screen.
 
 ## Changes Made
 
-### 1. Android Manifest Stripping
-- **[AndroidManifest.xml](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/app/src/main/AndroidManifest.xml)**:
-    - Added explicit `tools:node="remove"` for **every single** Health Connect permission.
-    - Verified the **Merged Manifest** to ensure that NO `android.permission.health` entries exist in the final binary.
+### 1. Robust Asset Loading
+- **[vite.config.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/vite.config.js)**:
+    - Set `base: "./"`. This ensures all generated script and style tags in `index.html` use relative paths, making them compatible with how Android's WebView handles local files.
 
-### 2. UI & Logic Cleanup
-- **[health.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/utils/health.js)**:
-    - Disabled all native plugin calls. Functions like `isHealthAvailable` now always return `false`.
-- **[HomeScreen.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/screens/HomeScreen.jsx)**:
-    - Removed the daily activity/calorie strip from the main dashboard.
-- **[MoreScreen.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/screens/MoreScreen.jsx)**:
-    - Removed the "Google Health Connect" settings and connection button.
+### 2. Error Resilience
+- **[supabaseClient.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/utils/supabaseClient.js)**:
+    - Added guards to prevent the app from crashing if Supabase environment variables are missing. It now logs a warning and exports a mock client that handles calls without throwing exceptions.
+- **[main.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/main.jsx)**:
+    - Added error handling to the storage hydration process. Even if storage fails to load, the app will now attempt to render the UI.
 
-### 3. Versioning
+### 3. UI Synchronization
+- **[App.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/App.jsx)**:
+    - Added a small delay (100ms) before hiding the splash screen. This allows the React app to finish its first paint, preventing the "white flash" that occurs when the splash screen disappears before the content is ready.
+
+### 4. Versioning
 - **[build.gradle](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/app/build.gradle)**:
-    - Bumped to `versionCode 135` and `versionName 1.0.4` for a fresh submission.
+    - Bumped to `versionCode 136` and `versionName 1.0.5`.
 
-## Verification Results
+## Next Steps for a Working Build
 
-### Merged Manifest Verification
-I have manually checked the merged manifest in the build folder:
-- **Result**: Zero health permissions found.
-- **Confirmation**: The app no longer requests any sensitive health data at the OS level.
+To ensure these fixes are included in your App Bundle, follow this **EXACT** sequence:
 
-## Next Steps for Approval
-
-1. **Build New AAB**: Run `.\gradlew :app:bundleRelease` in your terminal.
-2. **Clear Declaration**:
-    - Go to **App content** > **Health apps** in the Google Play Console.
-    - Select **"My app does not have any health features"**.
-    - Save and submit.
-3. **Upload AAB**: Upload the new Version 135 bundle and rollout to your testing/production tracks.
+1.  **Open Terminal** in Android Studio.
+2.  **Build the Web Assets**:
+    ```powershell
+    npm run build
+    ```
+3.  **Sync with Android**:
+    ```powershell
+    npx cap sync android
+    ```
+4.  **Build the Bundle**:
+    - Go to **Build > Build Bundle(s) / APK(s) > Build Bundle(s)**.
+5.  **Upload to Play Console**:
+    - Upload the new Version 136 bundle to your testing track.
 
 > [!IMPORTANT]
-> Since the app now has NO health permissions and the Console declaration will state "No health features," Google should approve this version without further health-related questions.
+> Step 2 and 3 are critical. If you don't run `npm run build` and `npx cap sync`, your Android project will keep using the old, broken web files.

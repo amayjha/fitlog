@@ -11,16 +11,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4.4.0
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4.7.0
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -31,17 +31,14 @@ jobs:
       - name: Build web assets
         run: npm run build
 
-      - name: Remove health plugin for Android build
-        run: npm uninstall @capgo/capacitor-health
-
       - name: Sync Capacitor
         run: npx cap sync android
 
       - name: Set version code and name
         run: |
-          sed -i "s/versionCode 1/versionCode $((  ${{ github.run_number }} + 100 ))/" android/app/build.gradle
-          sed -i "s/versionName \"1.0\"/versionName \"$(node -p "require('./package.json').version")\"/" android/app/build.gradle
-
+          # Use run_number + 200 to ensure unique versionCode higher than current 136
+          sed -i "s/versionCode [0-9]*/versionCode $(( ${{ github.run_number }} + 200 ))/" android/app/build.gradle
+          sed -i "s/versionName \".*\"/versionName \"$(node -p "require('./package.json').version")\"/" android/app/build.gradle
 
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
@@ -59,8 +56,8 @@ jobs:
             -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
       - name: Upload AAB
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v4
         with:
-          name: fitlog-release-${{ github.run_number }}.aab
+          name: fitlog-release-v${{ github.run_number }}
           path: android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 30
