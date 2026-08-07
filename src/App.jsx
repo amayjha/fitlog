@@ -75,7 +75,11 @@ export default function App() {
   /* ── Native: status bar + splash (once), back button (re-armed on nav state change) ── */
   useEffect(() => {
     applyStatusBarForTheme(themeName);
-    hideSplashScreen();
+    // Wait a tiny bit for the first React paint before hiding the splash screen
+    // to prevent the white flash.
+    setTimeout(() => {
+      hideSplashScreen();
+    }, 100);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

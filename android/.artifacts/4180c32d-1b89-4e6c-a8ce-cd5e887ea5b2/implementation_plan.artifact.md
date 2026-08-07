@@ -1,45 +1,41 @@
-# Implementation Plan - Complete Removal of Health Connect
+# Implementation Plan - Fix Blank White Screen on Launch
 
-This plan will completely remove all Health Connect permissions and user-facing features to satisfy Google Play's strict health data policies and ensure app approval.
+The blank white screen issue in Capacitor apps usually indicates a JavaScript execution failure or an asset loading error. This plan addresses the most common causes: absolute asset paths, missing environment variables, and initialization sequence issues.
 
 ## User Review Required
 
-> [!WARNING]
-> **Feature Loss**: This action will permanently disable the ability for users to sync weight, calories, or workouts from external health apps until the feature is re-implemented and approved by Google in a future update.
+> [!IMPORTANT]
+> **Build Sequence**: After applying these changes, you MUST run the following commands in order:
+> 1. `npm run build`
+> 2. `npx cap sync android`
+> 3. Then build the AAB in Android Studio.
 
 ## Proposed Changes
 
-### Android Manifest
+### [Component: Vite Configuration]
 
-#### [MODIFY] [AndroidManifest.xml](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/app/src/main/AndroidManifest.xml)
-- Explicitly remove EVERY health-related permission using `tools:node="remove"`.
-- This ensures that even the permissions bundled with the `@capgo/capacitor-health` library are completely stripped from the final App Bundle.
+#### [MODIFY] [vite.config.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/vite.config.js)
+- Set `base: "./"` to ensure all generated asset paths in `index.html` are relative. This is more compatible with the `capacitor://` and `http://localhost` schemes used on Android.
 
-### JavaScript Code & UI
+### [Component: Supabase Client]
 
-#### [MODIFY] [utils/health.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/utils/health.js)
-- Force `isHealthAvailable` to always return `false`.
-- Stub other functions to ensure no accidental calls to the native plugin.
+#### [MODIFY] [supabaseClient.js](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/utils/supabaseClient.js)
+- Guard the `createClient` call to prevent a top-level exception if environment variables are missing. If they are missing, we will export a mock or a client that lazily fails, preventing the entire JS bundle from crashing on boot.
 
-#### [MODIFY] [HomeScreen.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/screens/HomeScreen.jsx)
-- Remove the "Health activity strip" (Calories display) from the home screen UI.
+### [Component: App Initialization]
 
-#### [MODIFY] [MoreScreen.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/screens/MoreScreen.jsx)
-- Remove the entire "Google Health Connect" settings section.
+#### [MODIFY] [main.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/main.jsx)
+- Add basic logging to confirm the entry point is reached.
+- Wrap `initStorage` in a try-catch to ensure the app attempts to render even if storage hydration has issues.
 
-### Build Configuration
-
-#### [MODIFY] [build.gradle](file:///C:/Users/amayj/ironlog/ironlog/new_app/android/app/build.gradle)
-- Increment `versionCode` to **135**.
-- Increment `versionName` to **1.0.4**.
+#### [MODIFY] [App.jsx](file:///C:/Users/amayj/ironlog/ironlog/new_app/src/App.jsx)
+- Add a small timeout before calling `hideSplashScreen()` to ensure the React app has rendered its first frame.
 
 ## Verification Plan
 
 ### Automated Tests
-- Run `.\gradlew :app:assembleRelease`.
-- Inspect the merged manifest to confirm zero `android.permission.health` entries exist.
+- Build the project and check the generated `dist/index.html` to confirm paths like `src="assets/..."` instead of `src="/assets/..."`.
 
 ### Manual Verification
-- Deploy to a device.
-- Confirm that no Health Connect prompts or settings are visible in the app.
-- Resubmit Version 135 to the Play Console.
+- Deploy to an emulator/device and check Logcat for "App started" or any caught errors.
+- Verify that the app loads even if the `.env` file is missing (it should show the UI but maybe disable community features).
