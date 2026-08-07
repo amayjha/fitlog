@@ -36,8 +36,8 @@ jobs:
 
       - name: Set version code and name
         run: |
-          # Use run_number + 1000 to ensure unique versionCode higher than any previous releases
-          sed -i "s/versionCode [0-9]*/versionCode $(( ${{ github.run_number }} + 1000 ))/" android/app/build.gradle
+          # Use run_number + 2000 to ensure unique versionCode higher than any previous releases
+          sed -i "s/versionCode [0-9]*/versionCode $(( ${{ github.run_number }} + 2000 ))/" android/app/build.gradle
           sed -i "s/versionName \".*\"/versionName \"$(node -p "require('./package.json').version")\"/" android/app/build.gradle
 
       - name: Decode keystore
